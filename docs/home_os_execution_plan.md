@@ -201,6 +201,8 @@ SUPABASE_SERVICE_ROLE_KEY=    # from Supabase → Settings → API (service_role
 
 - [ ] Voice note support — Gemini 2.0 native audio
 - [ ] Recurrence engine — schema already ready, 7 layers to implement
+  - Gap: scheduler (`src/cron/scheduler.js`) never queries `next_due_date`; recurring tasks are classified and stored but never auto-regenerated when due
+  - Need: a daily cron job that finds tasks WHERE `is_recurring=true AND next_due_date <= today`, resets `completed=false`, and advances `next_due_date` by `recurrence_interval_days`
 - [ ] Weekly summary — every Sunday
 - [ ] Completion streak — gamification
 - [ ] Web dashboard — read-only Supabase view
