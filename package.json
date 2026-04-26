@@ -1,0 +1,22 @@
+{
+  "name": "home-os-bot",
+  "version": "1.0.0",
+  "description": "AI-powered Telegram bot for household task execution",
+  "main": "src/bot.js",
+  "scripts": {
+    "start": "node src/bot.js",
+    "dev": "node --watch src/bot.js",
+    "lint": "node -e \"console.log('No linter configured')\"",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@google/genai": "^1.50.1",
+    "@supabase/supabase-js": "^2.57.4",
+    "dotenv": "^17.2.3",
+    "node-cron": "^4.2.1",
+    "telegraf": "^4.16.3"
+  }
+}
