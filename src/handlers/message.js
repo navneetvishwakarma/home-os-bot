@@ -1,6 +1,5 @@
 const { classifyTask } = require("../services/gemini");
 const { addArea, createTask, getAreas } = require("../services/supabase");
-const { config } = require("../config");
 const { formatTaskCard } = require("../utils/formatters");
 const { error } = require("../utils/logger");
 const { handleCorrection } = require("./correction");
@@ -9,15 +8,16 @@ const { handleCompletionReply } = require("./complete");
 const { isCompletionWindowActive } = require("./queue-session");
 
 async function handleMessage(ctx) {
-  const userId = String(ctx.from.id);
-  if (!config.authorisedIds.has(userId)) return;
+  if (!ctx.household) return;
+
+  const userId = ctx.householdUser.telegramId;
 
   const existingCorrection = getSession(ctx.chat.id, ctx.from.id);
   if (existingCorrection) {
     return handleCorrection(ctx, existingCorrection);
   }
 
-  if (isCompletionWindowActive(ctx.chat.id)) {
+  if (isCompletionWindowActive(userId)) {
     const handled = await handleCompletionReply(ctx);
     if (handled) return;
   }
@@ -37,23 +37,23 @@ async function handleMessage(ctx) {
   }
 
   try {
-    const areas = await getAreas();
+    const areas = await getAreas(ctx.household.id);
     const task = await classifyTask(incoming, areas);
-    const taskId = await createTask({
+    const taskId = await createTask(ctx.household.id, {
       ...task,
       rawInput: incoming,
       addedBy: userId
     });
 
     if (task.isNewArea) {
-      await addArea(task.area);
+      await addArea(ctx.household.id, task.area);
       await ctx.reply(`🆕 Added "${task.area}" as a new area.`);
     }
 
-    await ctx.reply(formatTaskCard({ ...task, id: taskId }));
+    await ctx.reply(`🏠 ${ctx.household.name}\n\n${formatTaskCard({ ...task, id: taskId })}`);
     setRecentTask(ctx.chat.id, ctx.from.id, { ...task, id: taskId });
   } catch (err) {
-    error("task_capture_failed", { message: err.message, userId, chatId: String(ctx.chat.id) });
+    error("task_capture_failed", { message: err.message, userId, householdId: ctx.household.id });
     await ctx.reply("⚠️ Something went wrong. Try rephrasing?");
   }
 }
