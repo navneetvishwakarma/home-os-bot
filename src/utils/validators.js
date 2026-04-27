@@ -60,6 +60,16 @@ function safeParseJsonObject(raw) {
   }
 }
 
+function parseTimezone(value) {
+  if (!value || !value.trim()) return null;
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone: value.trim() });
+    return value.trim();
+  } catch (_e) {
+    return null;
+  }
+}
+
 module.exports = {
   clampEffortMins,
   normalizeCriticality,
@@ -67,6 +77,7 @@ module.exports = {
   normalizeTags,
   parseTimeHHMM,
   parseDurationMinutes,
+  parseTimezone,
   stripCodeFences,
   safeParseJsonObject
 };
