@@ -111,6 +111,27 @@ describe('handleCompletionReply', () => {
     assert.equal(endCompletionWindow.mock.calls.length, 1);
   });
 
+  it('comma-separated partial names match multiple tasks', async () => {
+    getQueuedTasks.mock.mockImplementation(() => TASKS);
+    // "leaky tap" is a substring of "Fix leaky tap"; "lawn" is a substring of "Mow lawn"
+    const ctx = makeCtx('leaky tap, lawn');
+    const result = await handleCompletionReply(ctx);
+    assert.equal(result, true);
+    const completedIds = bulkComplete.mock.calls[0].arguments[0];
+    assert.ok(completedIds.includes('task1'));
+    assert.ok(completedIds.includes('task2'));
+  });
+
+  it('single partial name token matches the right task', async () => {
+    getQueuedTasks.mock.mockImplementation(() => TASKS);
+    const ctx = makeCtx('leaky tap');
+    const result = await handleCompletionReply(ctx);
+    assert.equal(result, true);
+    const completedIds = bulkComplete.mock.calls[0].arguments[0];
+    assert.ok(completedIds.includes('task1'));
+    assert.ok(!completedIds.includes('task2'));
+  });
+
   it('returns false when text has no matching task names', async () => {
     getQueuedTasks.mock.mockImplementation(() => TASKS);
     const ctx = makeCtx('random unrelated text');

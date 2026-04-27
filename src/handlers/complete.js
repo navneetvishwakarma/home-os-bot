@@ -32,7 +32,14 @@ async function handleCompletionReply(ctx) {
     return true;
   }
 
-  const matches = queued.filter((task) => text.includes(task.title.toLowerCase()));
+  const tokens = text.split(",").map((s) => s.trim()).filter(Boolean);
+  const matches = queued.filter((task) => {
+    const title = task.title.toLowerCase();
+    // Full free text contains the exact task title ("I finished fix leaky tap today")
+    if (text.includes(title)) return true;
+    // Or any comma-separated short token is a substring of the task title ("leaky tap, lawn")
+    return tokens.some((token) => title.includes(token));
+  });
   if (matches.length > 0) {
     const count = await bulkComplete(matches.map((task) => task.id));
     endCompletionWindow(ctx.chat.id);
