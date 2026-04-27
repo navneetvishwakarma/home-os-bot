@@ -1,0 +1,80 @@
+'use strict';
+const { describe, it, mock, beforeEach } = require('node:test');
+const assert = require('node:assert/strict');
+
+const correctTask = mock.fn(async () => ({ criticality: 'HIGH' }));
+const updateTask = mock.fn(async () => {});
+const clearSession = mock.fn();
+
+require.cache[require.resolve('../../src/services/gemini')] = {
+  exports: { correctTask }
+};
+require.cache[require.resolve('../../src/services/supabase')] = {
+  exports: { updateTask }
+};
+require.cache[require.resolve('../../src/handlers/correction-session')] = {
+  exports: { clearSession }
+};
+
+const { handleCorrection } = require('../../src/handlers/correction');
+
+const SESSION = {
+  task: { id: 'task-1', title: 'Fix tap', criticality: 'LOW', effortMins: 20, assignedTo: 'Me', area: 'Kitchen', tags: [], reasoning: 'just because' }
+};
+
+function makeCtx(correctionText) {
+  return {
+    message: { text: correctionText },
+    chat: { id: 'chat1' },
+    from: { id: 'user1' },
+    reply: mock.fn(async () => {})
+  };
+}
+
+describe('handleCorrection', () => {
+  beforeEach(() => {
+    correctTask.mock.resetCalls();
+    updateTask.mock.resetCalls();
+    clearSession.mock.resetCalls();
+    correctTask.mock.mockImplementation(async () => ({ criticality: 'HIGH' }));
+    updateTask.mock.mockImplementation(async () => {});
+  });
+
+  it('calls correctTask with the session task and the correction text', async () => {
+    correctTask.mock.mockImplementation(async () => ({ criticality: 'HIGH' }));
+    const ctx = makeCtx('make it HIGH');
+    await handleCorrection(ctx, SESSION);
+    assert.equal(correctTask.mock.calls.length, 1);
+    assert.deepEqual(correctTask.mock.calls[0].arguments[0], SESSION.task);
+    assert.equal(correctTask.mock.calls[0].arguments[1], 'make it HIGH');
+  });
+
+  it('calls updateTask with the task id and the returned patch', async () => {
+    const patch = { criticality: 'CRITICAL', effortMins: 45 };
+    correctTask.mock.mockImplementation(async () => patch);
+    const ctx = makeCtx('change priority and effort');
+    await handleCorrection(ctx, SESSION);
+    assert.equal(updateTask.mock.calls.length, 1);
+    assert.equal(updateTask.mock.calls[0].arguments[0], 'task-1');
+    assert.deepEqual(updateTask.mock.calls[0].arguments[1], patch);
+  });
+
+  it('clears the session after correction', async () => {
+    correctTask.mock.mockImplementation(async () => ({ criticality: 'HIGH' }));
+    const ctx = makeCtx('make it HIGH');
+    await handleCorrection(ctx, SESSION);
+    assert.equal(clearSession.mock.calls.length, 1);
+    assert.equal(clearSession.mock.calls[0].arguments[0], 'chat1');
+    assert.equal(clearSession.mock.calls[0].arguments[1], 'user1');
+  });
+
+  it('replies with a task-changes message', async () => {
+    correctTask.mock.mockImplementation(async () => ({ criticality: 'HIGH' }));
+    const ctx = makeCtx('make it HIGH');
+    await handleCorrection(ctx, SESSION);
+    assert.equal(ctx.reply.mock.calls.length, 1);
+    const replyText = ctx.reply.mock.calls[0].arguments[0];
+    assert.ok(replyText.includes('criticality'));
+    assert.ok(replyText.includes('HIGH'));
+  });
+});
