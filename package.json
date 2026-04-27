@@ -7,7 +7,7 @@
     "start": "node src/bot.js",
     "dev": "node --watch src/bot.js",
     "lint": "node -e \"console.log('No linter configured')\"",
-    "test": "node --test"
+    "test": "node --test test/"
   },
   "engines": {
     "node": ">=20"

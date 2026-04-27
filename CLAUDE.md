@@ -7,7 +7,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 npm run dev      # run with --watch for development (auto-restart on file changes)
 npm run start    # production start (used by Railway)
-npm test         # node --test (no tests implemented yet)
+npm test         # node --test test/ — runs all tests recursively
+node --test test/unit/validators.test.js   # run a single test file
 ```
 
 There is no linter configured.
