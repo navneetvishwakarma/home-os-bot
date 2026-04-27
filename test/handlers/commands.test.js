@@ -5,6 +5,8 @@ const assert = require('node:assert/strict');
 const getAreas = mock.fn(async () => []);
 const addArea = mock.fn(async () => {});
 const removeArea = mock.fn(async () => {});
+const bulkComplete = mock.fn(async () => 1);
+const deleteTask = mock.fn(async () => {});
 const getHouseholdMembers = mock.fn(async () => []);
 const getMembership = mock.fn(async () => ({ joined_at: '2025-01-15T00:00:00Z' }));
 const getIncompleteTasksByPriority = mock.fn(async () => []);
@@ -14,7 +16,7 @@ const updateSettings = mock.fn(async () => {});
 const refreshScheduleForHousehold = mock.fn(async () => {});
 
 require.cache[require.resolve('../../src/services/supabase')] = {
-  exports: { getAreas, addArea, removeArea, getHouseholdMembers, getMembership, getIncompleteTasksByPriority, getSettings, updateSettings }
+  exports: { getAreas, addArea, removeArea, bulkComplete, deleteTask, getHouseholdMembers, getMembership, getIncompleteTasksByPriority, getSettings, updateSettings }
 };
 require.cache[require.resolve('../../src/cron/scheduler')] = {
   exports: { refreshScheduleForHousehold }
@@ -52,6 +54,8 @@ describe('commands', () => {
     getAreas.mock.resetCalls();
     addArea.mock.resetCalls();
     removeArea.mock.resetCalls();
+    bulkComplete.mock.resetCalls();
+    deleteTask.mock.resetCalls();
     getHouseholdMembers.mock.resetCalls();
     getMembership.mock.resetCalls();
     getIncompleteTasksByPriority.mock.resetCalls();
@@ -133,16 +137,100 @@ describe('commands', () => {
       assert.ok(reply.includes('No pending'));
     });
 
-    it('lists tasks with criticality and effort', async () => {
+    it('lists tasks as a numbered list with criticality and effort', async () => {
       getIncompleteTasksByPriority.mock.mockImplementation(async () => [
-        { id: 't1', title: 'Fix tap', criticality: 'HIGH', effortMins: 30 }
+        { id: 't1', title: 'Fix tap', criticality: 'HIGH', effortMins: 30 },
+        { id: 't2', title: 'Buy groceries', criticality: 'MEDIUM', effortMins: 20 }
       ]);
       const ctx = makeCtx('/pending');
       await handlers['pending'](ctx);
       const reply = ctx.reply.mock.calls[0].arguments[0];
-      assert.ok(reply.includes('HIGH'));
+      assert.ok(reply.includes('1.'));
+      assert.ok(reply.includes('2.'));
       assert.ok(reply.includes('Fix tap'));
+      assert.ok(reply.includes('Buy groceries'));
+      assert.ok(reply.includes('HIGH'));
       assert.ok(reply.includes('30m'));
+    });
+  });
+
+  describe('/done', () => {
+    it('replies usage error when no argument given', async () => {
+      const ctx = makeCtx('/done');
+      await handlers['done'](ctx);
+      assert.ok(ctx.reply.mock.calls[0].arguments[0].includes('Usage'));
+      assert.equal(bulkComplete.mock.calls.length, 0);
+    });
+
+    it('marks task done by index number', async () => {
+      getIncompleteTasksByPriority.mock.mockImplementation(async () => [
+        { id: 't1', title: 'Fix tap', criticality: 'HIGH', effortMins: 30 }
+      ]);
+      const ctx = makeCtx('/done 1');
+      await handlers['done'](ctx);
+      assert.equal(bulkComplete.mock.calls.length, 1);
+      assert.deepEqual(bulkComplete.mock.calls[0].arguments[0], ['t1']);
+      assert.ok(ctx.reply.mock.calls[0].arguments[0].includes('Fix tap'));
+    });
+
+    it('marks task done by name substring', async () => {
+      getIncompleteTasksByPriority.mock.mockImplementation(async () => [
+        { id: 't1', title: 'Fix tap', criticality: 'HIGH', effortMins: 30 }
+      ]);
+      const ctx = makeCtx('/done fix tap');
+      await handlers['done'](ctx);
+      assert.equal(bulkComplete.mock.calls.length, 1);
+      assert.deepEqual(bulkComplete.mock.calls[0].arguments[0], ['t1']);
+    });
+
+    it('replies "not found" when query matches nothing', async () => {
+      getIncompleteTasksByPriority.mock.mockImplementation(async () => [
+        { id: 't1', title: 'Fix tap', criticality: 'HIGH', effortMins: 30 }
+      ]);
+      const ctx = makeCtx('/done paint fence');
+      await handlers['done'](ctx);
+      assert.equal(bulkComplete.mock.calls.length, 0);
+      assert.ok(ctx.reply.mock.calls[0].arguments[0].includes('not found'));
+    });
+  });
+
+  describe('/delete', () => {
+    it('replies usage error when no argument given', async () => {
+      const ctx = makeCtx('/delete');
+      await handlers['delete'](ctx);
+      assert.ok(ctx.reply.mock.calls[0].arguments[0].includes('Usage'));
+      assert.equal(deleteTask.mock.calls.length, 0);
+    });
+
+    it('deletes task by index number', async () => {
+      getIncompleteTasksByPriority.mock.mockImplementation(async () => [
+        { id: 't2', title: 'Buy groceries', criticality: 'MEDIUM', effortMins: 20 }
+      ]);
+      const ctx = makeCtx('/delete 1');
+      await handlers['delete'](ctx);
+      assert.equal(deleteTask.mock.calls.length, 1);
+      assert.equal(deleteTask.mock.calls[0].arguments[0], 't2');
+      assert.ok(ctx.reply.mock.calls[0].arguments[0].includes('Buy groceries'));
+    });
+
+    it('deletes task by name substring', async () => {
+      getIncompleteTasksByPriority.mock.mockImplementation(async () => [
+        { id: 't2', title: 'Buy groceries', criticality: 'MEDIUM', effortMins: 20 }
+      ]);
+      const ctx = makeCtx('/delete groceries');
+      await handlers['delete'](ctx);
+      assert.equal(deleteTask.mock.calls.length, 1);
+      assert.equal(deleteTask.mock.calls[0].arguments[0], 't2');
+    });
+
+    it('replies "not found" when query matches nothing', async () => {
+      getIncompleteTasksByPriority.mock.mockImplementation(async () => [
+        { id: 't2', title: 'Buy groceries', criticality: 'MEDIUM', effortMins: 20 }
+      ]);
+      const ctx = makeCtx('/delete paint fence');
+      await handlers['delete'](ctx);
+      assert.equal(deleteTask.mock.calls.length, 0);
+      assert.ok(ctx.reply.mock.calls[0].arguments[0].includes('not found'));
     });
   });
 
@@ -215,6 +303,8 @@ describe('commands', () => {
       const reply = ctx.reply.mock.calls[0].arguments[0];
       assert.ok(reply.includes('/queue'));
       assert.ok(reply.includes('/pending'));
+      assert.ok(reply.includes('/done'));
+      assert.ok(reply.includes('/delete'));
       assert.ok(reply.includes('/myhousehold'));
     });
 

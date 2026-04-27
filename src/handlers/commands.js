@@ -2,6 +2,8 @@ const { buildQueue } = require("../services/queue-builder");
 const { buildGCalUrl } = require("../services/calendar");
 const {
   addArea,
+  bulkComplete,
+  deleteTask,
   getAreas,
   getHouseholdMembers,
   getIncompleteTasksByPriority,
@@ -18,6 +20,13 @@ const { error } = require("../utils/logger");
 
 function householdHeader(name) {
   return `🏠 ${name}\n\n`;
+}
+
+function findTaskByQuery(tasks, query) {
+  const n = parseInt(query, 10);
+  if (Number.isInteger(n) && n >= 1 && n <= tasks.length) return tasks[n - 1];
+  const lower = query.toLowerCase();
+  return tasks.find((t) => t.title.toLowerCase().includes(lower)) || null;
 }
 
 async function registerCommands(bot) {
@@ -70,8 +79,28 @@ async function registerCommands(bot) {
     const tasks = await getIncompleteTasksByPriority(ctx.household.id);
     if (!tasks.length) return ctx.reply(`${householdHeader(ctx.household.name)}No pending tasks.`);
     const lines = [`${householdHeader(ctx.household.name)}🧾 Pending tasks`, ""];
-    for (const task of tasks) lines.push(`• [${task.criticality}] ${task.title} (~${task.effortMins}m)`);
+    tasks.forEach((task, i) => lines.push(`${i + 1}. [${task.criticality}] ${task.title} (~${task.effortMins}m)`));
     return ctx.reply(lines.join("\n"));
+  }));
+
+  bot.command("done", requireMember(async (ctx) => {
+    const query = ctx.message.text.replace(/^\/done\s*/i, "").trim();
+    if (!query) return ctx.reply("Usage: /done <number or task name>");
+    const tasks = await getIncompleteTasksByPriority(ctx.household.id);
+    const task = findTaskByQuery(tasks, query);
+    if (!task) return ctx.reply("❌ Task not found. Use /pending to see the list.");
+    await bulkComplete([task.id]);
+    return ctx.reply(`✅ Marked done: ${task.title}`);
+  }));
+
+  bot.command("delete", requireMember(async (ctx) => {
+    const query = ctx.message.text.replace(/^\/delete\s*/i, "").trim();
+    if (!query) return ctx.reply("Usage: /delete <number or task name>");
+    const tasks = await getIncompleteTasksByPriority(ctx.household.id);
+    const task = findTaskByQuery(tasks, query);
+    if (!task) return ctx.reply("❌ Task not found. Use /pending to see the list.");
+    await deleteTask(task.id);
+    return ctx.reply(`🗑️ Deleted: ${task.title}`);
   }));
 
   bot.command("settings", requireMember(async (ctx) => {
@@ -128,7 +157,9 @@ async function registerCommands(bot) {
       "/addarea <name> — add an area",
       "/removearea <name> — remove an area",
       "/queue — today's task queue",
-      "/pending — all pending tasks",
+      "/pending — all pending tasks (numbered)",
+      "/done <number or name> — mark a task complete",
+      "/delete <number or name> — delete a task",
       "/settings — show settings",
       "/leavehousehold — leave this household",
       "/help — this message"

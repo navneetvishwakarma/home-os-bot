@@ -115,6 +115,11 @@ async function bulkComplete(ids) {
   return data.length;
 }
 
+async function deleteTask(id) {
+  const { error } = await supabase.from("tasks").delete().eq("id", id);
+  if (error) throw error;
+}
+
 // ─── Areas ────────────────────────────────────────────────────────────────────
 
 async function getAreas(householdId) {
@@ -404,6 +409,7 @@ module.exports = {
   updateTask,
   getIncompleteTasksByPriority,
   bulkComplete,
+  deleteTask,
   // Areas
   getAreas,
   addArea,
