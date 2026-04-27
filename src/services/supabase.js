@@ -87,6 +87,7 @@ async function updateTask(id, patch) {
 }
 
 async function getIncompleteTasksByPriority(householdId) {
+  const today = new Date().toISOString().slice(0, 10);
   const { data, error } = await supabase
     .from("tasks")
     .select("*")
@@ -96,6 +97,7 @@ async function getIncompleteTasksByPriority(householdId) {
   if (error) throw error;
   return data
     .map(fromDbTask)
+    .filter((t) => !t.isRecurring || !t.nextDueDate || t.nextDueDate <= today)
     .sort((a, b) => {
       const p = CRITICALITY_ORDER[a.criticality] - CRITICALITY_ORDER[b.criticality];
       if (p !== 0) return p;
@@ -106,13 +108,41 @@ async function getIncompleteTasksByPriority(householdId) {
 async function bulkComplete(ids) {
   if (!ids.length) return 0;
   const now = new Date().toISOString();
-  const { data, error } = await supabase
+  const today = now.slice(0, 10);
+
+  const { data: tasks, error: fetchError } = await supabase
     .from("tasks")
-    .update({ completed: true, completed_at: now, last_completed_at: now.slice(0, 10) })
-    .in("id", ids)
-    .select("id");
-  if (error) throw error;
-  return data.length;
+    .select("id, is_recurring, recurrence_interval_days")
+    .in("id", ids);
+  if (fetchError) throw fetchError;
+
+  const recurring = tasks.filter((t) => t.is_recurring);
+  const nonRecurring = tasks.filter((t) => !t.is_recurring);
+  let completed = 0;
+
+  if (nonRecurring.length) {
+    const { data, error } = await supabase
+      .from("tasks")
+      .update({ completed: true, completed_at: now, last_completed_at: today })
+      .in("id", nonRecurring.map((t) => t.id))
+      .select("id");
+    if (error) throw error;
+    completed += data.length;
+  }
+
+  for (const task of recurring) {
+    const intervalDays = task.recurrence_interval_days || 7;
+    const nextDue = new Date(Date.now() + intervalDays * 24 * 60 * 60 * 1000)
+      .toISOString().slice(0, 10);
+    const { error } = await supabase
+      .from("tasks")
+      .update({ last_completed_at: today, next_due_date: nextDue })
+      .eq("id", task.id);
+    if (error) throw error;
+    completed += 1;
+  }
+
+  return completed;
 }
 
 async function deleteTask(id) {
