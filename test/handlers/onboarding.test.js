@@ -8,6 +8,9 @@ const consumeInviteCode = mock.fn(async () => null);
 require.cache[require.resolve('../../src/services/supabase')] = {
   exports: { createHousehold, consumeInviteCode }
 };
+require.cache[require.resolve('../../src/services/witty-response')] = {
+  exports: { generateWittyReply: mock.fn(async () => null) }
+};
 
 const { registerOnboardingCommands } = require('../../src/handlers/onboarding');
 

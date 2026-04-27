@@ -15,6 +15,9 @@ require.cache[require.resolve('../../src/services/supabase')] = {
 require.cache[require.resolve('../../src/handlers/correction-session')] = {
   exports: { clearSession }
 };
+require.cache[require.resolve('../../src/services/witty-response')] = {
+  exports: { generateWittyReply: mock.fn(async () => null) }
+};
 
 const { handleCorrection } = require('../../src/handlers/correction');
 

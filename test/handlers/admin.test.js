@@ -12,6 +12,9 @@ const updateMemberRole = mock.fn(async () => {});
 require.cache[require.resolve('../../src/services/supabase')] = {
   exports: { createInviteCode, findUserByTelegramId, getAdminCount, getHouseholdMembers, removeMember, updateMemberRole }
 };
+require.cache[require.resolve('../../src/services/witty-response')] = {
+  exports: { generateWittyReply: mock.fn(async () => null) }
+};
 // guards.js has no external deps — let it run natively
 delete require.cache[require.resolve('../../src/middleware/guards')];
 

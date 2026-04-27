@@ -7,6 +7,7 @@ const {
   updateMemberRole
 } = require("../services/supabase");
 const { requireAdmin, requireMember } = require("../middleware/guards");
+const { generateWittyReply } = require("../services/witty-response");
 
 function formatJoinedDate(isoString) {
   return new Date(isoString).toISOString().slice(0, 10);
@@ -38,11 +39,9 @@ function registerAdminCommands(bot) {
   bot.command("invite", requireAdmin(async (ctx) => {
     const { code, expiresAt } = await createInviteCode(ctx.household.id, ctx.householdUser.id);
     const expiryDate = new Date(expiresAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" });
-    await ctx.reply(
-      `🔗 Invite code: ${code}\n` +
-      `Expires: ${expiryDate}\n\n` +
-      `Share this with your family member:\n→ /join ${code}`
-    );
+    const inviteBlock = `🔗 Invite code: ${code}\nExpires: ${expiryDate}\n\nShare this with your family member:\n→ /join ${code}`;
+    const witty = await generateWittyReply('invite_generated', { code });
+    await ctx.reply(witty ? `${inviteBlock}\n\n${witty}` : inviteBlock);
   }));
 
   bot.command("members", requireAdmin(async (ctx) => {
@@ -65,7 +64,8 @@ function registerAdminCommands(bot) {
     }
 
     await removeMember(ctx.household.id, targetMember.userId);
-    await ctx.reply(`✅ ${targetMember.displayName} has been removed from the household.`);
+    const witty = await generateWittyReply('member_removed', { name: targetMember.displayName });
+    await ctx.reply(witty || `✅ ${targetMember.displayName} has been removed from the household.`);
   }));
 
   bot.command("promote", requireAdmin(async (ctx) => {
@@ -78,7 +78,8 @@ function registerAdminCommands(bot) {
     }
 
     await updateMemberRole(ctx.household.id, targetMember.userId, "admin");
-    await ctx.reply(`✅ ${targetMember.displayName} is now an admin.`);
+    const witty = await generateWittyReply('member_promoted', { name: targetMember.displayName });
+    await ctx.reply(witty || `✅ ${targetMember.displayName} is now an admin.`);
   }));
 
   bot.command("demote", requireAdmin(async (ctx) => {
@@ -98,7 +99,8 @@ function registerAdminCommands(bot) {
     }
 
     await updateMemberRole(ctx.household.id, targetMember.userId, "member");
-    await ctx.reply(`✅ ${targetMember.displayName} is now a member.`);
+    const witty = await generateWittyReply('member_demoted', { name: targetMember.displayName });
+    await ctx.reply(witty || `✅ ${targetMember.displayName} is now a member.`);
   }));
 
   bot.command("leavehousehold", requireMember(async (ctx) => {
@@ -116,10 +118,9 @@ function registerAdminCommands(bot) {
     }
 
     await removeMember(ctx.household.id, ctx.householdUser.id);
-    await ctx.reply(
-      `👋 You've left "${ctx.household.name}".\n\n` +
-      "Use /create or /join to set up a new household."
-    );
+    const witty = await generateWittyReply('left_household', { name: ctx.household.name });
+    await ctx.reply(witty || `👋 You've left "${ctx.household.name}".`);
+    await ctx.reply("Use /create or /join to set up a new household.");
   }));
 }
 

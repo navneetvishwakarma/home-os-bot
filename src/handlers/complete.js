@@ -1,5 +1,6 @@
 const { bulkComplete } = require("../services/supabase");
 const { endCompletionWindow, getQueuedTasks } = require("./queue-session");
+const { generateWittyReply } = require("../services/witty-response");
 
 function normalizeText(value) {
   return String(value || "").trim().toLowerCase();
@@ -13,7 +14,8 @@ async function handleCompletionReply(ctx) {
   if (["yes", "done", "all done"].includes(text)) {
     const count = await bulkComplete(queued.map((task) => task.id));
     endCompletionWindow(ctx.chat.id);
-    await ctx.reply(`✅ Marked ${count} tasks as complete.`);
+    const witty = await generateWittyReply('tasks_all_done', { count });
+    await ctx.reply(witty || `✅ Marked ${count} tasks as complete.`);
     return true;
   }
 
@@ -23,7 +25,10 @@ async function handleCompletionReply(ctx) {
     const ids = queued.filter((task) => !skipTask || task.id !== skipTask.id).map((task) => task.id);
     const count = await bulkComplete(ids);
     endCompletionWindow(ctx.chat.id);
-    await ctx.reply(`✅ Completed ${count} tasks. Skipped ${skipTask ? skipTask.title : "none"}.`);
+    const witty = skipTask
+      ? await generateWittyReply('tasks_partial', { count, skippedName: skipTask.title })
+      : await generateWittyReply('tasks_all_done', { count });
+    await ctx.reply(witty || `✅ Completed ${count} tasks. Skipped ${skipTask ? skipTask.title : "none"}.`);
     return true;
   }
 
@@ -43,7 +48,8 @@ async function handleCompletionReply(ctx) {
   if (matches.length > 0) {
     const count = await bulkComplete(matches.map((task) => task.id));
     endCompletionWindow(ctx.chat.id);
-    await ctx.reply(`✅ Marked ${count} selected tasks complete.`);
+    const witty = await generateWittyReply('tasks_all_done', { count });
+    await ctx.reply(witty || `✅ Marked ${count} selected tasks complete.`);
     return true;
   }
 
