@@ -2,6 +2,7 @@ const crypto = require("crypto");
 const { createClient } = require("@supabase/supabase-js");
 const { config } = require("../config");
 const { CRITICALITY_ORDER, DEFAULT_AREA_SEED } = require("../constants");
+const { warn } = require("../utils/logger");
 
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceRoleKey, {
   auth: { persistSession: false }
@@ -275,7 +276,13 @@ async function getAllHouseholdsWithSettings() {
     .is("deleted_at", null);
   if (error) throw error;
   return data
-    .filter((h) => Array.isArray(h.settings) && h.settings.length > 0)
+    .filter((h) => {
+      if (!Array.isArray(h.settings) || !h.settings.length) {
+        warn("household_missing_settings", { householdId: h.id, name: h.name });
+        return false;
+      }
+      return true;
+    })
     .map((h) => {
       const s = h.settings[0];
       return {

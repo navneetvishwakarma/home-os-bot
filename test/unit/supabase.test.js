@@ -47,7 +47,13 @@ require.cache[require.resolve('../../src/config')] = {
   }
 };
 
-const { bulkComplete, getIncompleteTasksByPriority } = require('../../src/services/supabase');
+const { mock } = require('node:test');
+const warnFn = mock.fn();
+require.cache[require.resolve('../../src/utils/logger')] = {
+  exports: { info: mock.fn(), warn: warnFn, error: mock.fn() }
+};
+
+const { bulkComplete, getIncompleteTasksByPriority, getAllHouseholdsWithSettings } = require('../../src/services/supabase');
 
 // ─── bulkComplete ─────────────────────────────────────────────────────────────
 
@@ -196,5 +202,58 @@ describe('getIncompleteTasksByPriority', () => {
     assert.equal(tasks[1].id, 'high-fast');
     assert.equal(tasks[2].id, 'high-slow');
     assert.equal(tasks[3].id, 'low');
+  });
+});
+
+// ─── getAllHouseholdsWithSettings ─────────────────────────────────────────────
+
+describe('getAllHouseholdsWithSettings', () => {
+  beforeEach(() => {
+    responseQueue = [];
+    warnFn.mock.resetCalls();
+  });
+
+  it('returns mapped households that have a settings row', async () => {
+    responseQueue.push({
+      data: [{
+        id: 'h1', name: 'Sharma House',
+        settings: [{ calendar_time: '18:00:00', calendar_duration: 60, timezone: 'Asia/Kolkata' }]
+      }],
+      error: null
+    });
+    const result = await getAllHouseholdsWithSettings();
+    assert.equal(result.length, 1);
+    assert.equal(result[0].id, 'h1');
+    assert.equal(result[0].settings.calendarTime, '18:00');
+    assert.equal(warnFn.mock.calls.length, 0);
+  });
+
+  it('emits a warning and omits households with no settings row', async () => {
+    responseQueue.push({
+      data: [
+        { id: 'h1', name: 'Sharma House', settings: [] },
+        { id: 'h2', name: 'Kumar House', settings: [{ calendar_time: '19:00:00', calendar_duration: 45, timezone: 'Asia/Kolkata' }] }
+      ],
+      error: null
+    });
+    const result = await getAllHouseholdsWithSettings();
+    assert.equal(result.length, 1);
+    assert.equal(result[0].id, 'h2');
+    assert.equal(warnFn.mock.calls.length, 1);
+    assert.equal(warnFn.mock.calls[0].arguments[0], 'household_missing_settings');
+    assert.equal(warnFn.mock.calls[0].arguments[1].householdId, 'h1');
+  });
+
+  it('returns empty array and warns for each household when none have settings', async () => {
+    responseQueue.push({
+      data: [
+        { id: 'h1', name: 'House A', settings: [] },
+        { id: 'h2', name: 'House B', settings: null }
+      ],
+      error: null
+    });
+    const result = await getAllHouseholdsWithSettings();
+    assert.equal(result.length, 0);
+    assert.equal(warnFn.mock.calls.length, 2);
   });
 });
