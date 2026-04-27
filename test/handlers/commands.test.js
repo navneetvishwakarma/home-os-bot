@@ -21,6 +21,9 @@ require.cache[require.resolve('../../src/services/supabase')] = {
 require.cache[require.resolve('../../src/cron/scheduler')] = {
   exports: { refreshScheduleForHousehold }
 };
+require.cache[require.resolve('../../src/services/witty-response')] = {
+  exports: { generateWittyReply: mock.fn(async () => null) }
+};
 // guards and validators have no external deps — let them run natively
 delete require.cache[require.resolve('../../src/middleware/guards')];
 delete require.cache[require.resolve('../../src/utils/validators')];

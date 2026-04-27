@@ -1,4 +1,5 @@
 const { createHousehold, consumeInviteCode } = require("../services/supabase");
+const { generateWittyReply } = require("../services/witty-response");
 
 function registerOnboardingCommands(bot) {
   bot.command("start", async (ctx) => {
@@ -26,11 +27,9 @@ function registerOnboardingCommands(bot) {
     if (name.length > 60) return ctx.reply("❌ Household name must be 60 characters or fewer.");
 
     const household = await createHousehold(name, ctx.householdUser.id);
-    await ctx.reply(
-      `🏠 "${household.name}" created! You're the admin.\n\n` +
-      "Default areas and settings are ready.\n" +
-      "Invite your family: /invite"
-    );
+    const createBlock = `🏠 "${household.name}" created! You're the admin.\n\nDefault areas and settings are ready.\nInvite your family: /invite`;
+    const witty = await generateWittyReply('household_created', { name: household.name });
+    await ctx.reply(witty ? `${createBlock}\n\n${witty}` : createBlock);
   });
 
   bot.command("join", async (ctx) => {
@@ -58,10 +57,9 @@ function registerOnboardingCommands(bot) {
       );
     }
 
-    await ctx.reply(
-      `🏠 You've joined "${result.householdName}"! Welcome.\n\n` +
-      "Type naturally to add tasks, or use /help for all commands."
-    );
+    const joinBlock = `🏠 You've joined "${result.householdName}"! Welcome.\n\nType naturally to add tasks, or use /help for all commands.`;
+    const witty = await generateWittyReply('household_joined', { name: result.householdName });
+    await ctx.reply(witty ? `${joinBlock}\n\n${witty}` : joinBlock);
   });
 }
 

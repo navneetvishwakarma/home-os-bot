@@ -17,6 +17,7 @@ const { requireAdmin, requireMember } = require("../middleware/guards");
 const { formatQueueMessage } = require("../utils/formatters");
 const { parseDurationMinutes, parseTimeHHMM, parseTimezone } = require("../utils/validators");
 const { error } = require("../utils/logger");
+const { generateWittyReply } = require("../services/witty-response");
 
 function householdHeader(name) {
   return `🏠 ${name}\n\n`;
@@ -54,14 +55,16 @@ async function registerCommands(bot) {
     const name = ctx.message.text.replace(/^\/addarea\s*/i, "").trim();
     if (!name) return ctx.reply("Usage: /addarea <name>");
     await addArea(ctx.household.id, name);
-    return ctx.reply(`✅ Added area: ${name}`);
+    const witty = await generateWittyReply('area_added', { name });
+    return ctx.reply(witty || `✅ Added area: ${name}`);
   }));
 
   bot.command("removearea", requireMember(async (ctx) => {
     const name = ctx.message.text.replace(/^\/removearea\s*/i, "").trim();
     if (!name) return ctx.reply("Usage: /removearea <name>");
     await removeArea(ctx.household.id, name);
-    return ctx.reply(`✅ Removed area: ${name}`);
+    const witty = await generateWittyReply('area_removed', { name });
+    return ctx.reply(witty || `✅ Removed area: ${name}`);
   }));
 
   bot.command("queue", requireMember(async (ctx) => {
@@ -90,7 +93,8 @@ async function registerCommands(bot) {
     const task = findTaskByQuery(tasks, query);
     if (!task) return ctx.reply("❌ Task not found. Use /pending to see the list.");
     await bulkComplete([task.id]);
-    return ctx.reply(`✅ Marked done: ${task.title}`);
+    const witty = await generateWittyReply('task_completed', { title: task.title });
+    return ctx.reply(witty || `✅ Marked done: ${task.title}`);
   }));
 
   bot.command("delete", requireMember(async (ctx) => {
@@ -100,7 +104,8 @@ async function registerCommands(bot) {
     const task = findTaskByQuery(tasks, query);
     if (!task) return ctx.reply("❌ Task not found. Use /pending to see the list.");
     await deleteTask(task.id);
-    return ctx.reply(`🗑️ Deleted: ${task.title}`);
+    const witty = await generateWittyReply('task_deleted', { title: task.title });
+    return ctx.reply(witty || `🗑️ Deleted: ${task.title}`);
   }));
 
   bot.command("settings", requireMember(async (ctx) => {
@@ -121,7 +126,8 @@ async function registerCommands(bot) {
     refreshScheduleForHousehold(bot, ctx.household.id).catch((err) =>
       error("scheduler_refresh_failed", { householdId: ctx.household.id, message: err.message })
     );
-    await ctx.reply(`✅ Queue time set to ${parsed}`);
+    const witty = await generateWittyReply('time_set', { time: parsed });
+    await ctx.reply(witty || `✅ Queue time set to ${parsed}`);
   }));
 
   bot.command("setduration", requireAdmin(async (ctx) => {
@@ -132,7 +138,8 @@ async function registerCommands(bot) {
     refreshScheduleForHousehold(bot, ctx.household.id).catch((err) =>
       error("scheduler_refresh_failed", { householdId: ctx.household.id, message: err.message })
     );
-    await ctx.reply(`✅ Duration set to ${parsed} mins`);
+    const witty = await generateWittyReply('duration_set', { mins: parsed });
+    await ctx.reply(witty || `✅ Duration set to ${parsed} mins`);
   }));
 
   bot.command("settimezone", requireAdmin(async (ctx) => {
@@ -143,7 +150,8 @@ async function registerCommands(bot) {
     refreshScheduleForHousehold(bot, ctx.household.id).catch((err) =>
       error("scheduler_refresh_failed", { householdId: ctx.household.id, message: err.message })
     );
-    await ctx.reply(`✅ Timezone set to ${tz}`);
+    const witty = await generateWittyReply('timezone_set', { tz });
+    await ctx.reply(witty || `✅ Timezone set to ${tz}`);
   }));
 
   bot.command("help", requireMember(async (ctx) => {

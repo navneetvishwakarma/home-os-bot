@@ -1,4 +1,5 @@
 const { classifyTask } = require("../services/gemini");
+const { generateWittyReply } = require("../services/witty-response");
 const { addArea, createTask, getAreas } = require("../services/supabase");
 const { formatTaskCard } = require("../utils/formatters");
 const { error } = require("../utils/logger");
@@ -50,7 +51,9 @@ async function handleMessage(ctx) {
       await ctx.reply(`🆕 Added "${task.area}" as a new area.`);
     }
 
-    await ctx.reply(`🏠 ${ctx.household.name}\n\n${formatTaskCard({ ...task, id: taskId })}`);
+    const block = `🏠 ${ctx.household.name}\n\n${formatTaskCard({ ...task, id: taskId })}`;
+    const witty = await generateWittyReply('task_added', { title: task.title, area: task.area, assignedTo: task.assignedTo });
+    await ctx.reply(witty ? `${block}\n\n${witty}` : block);
     setRecentTask(ctx.chat.id, ctx.from.id, { ...task, id: taskId });
   } catch (err) {
     error("task_capture_failed", { message: err.message, userId, householdId: ctx.household.id });

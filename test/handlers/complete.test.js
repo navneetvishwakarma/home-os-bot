@@ -12,6 +12,9 @@ require.cache[require.resolve('../../src/services/supabase')] = {
 require.cache[require.resolve('../../src/handlers/queue-session')] = {
   exports: { getQueuedTasks, endCompletionWindow }
 };
+require.cache[require.resolve('../../src/services/witty-response')] = {
+  exports: { generateWittyReply: mock.fn(async () => null) }
+};
 
 const { handleCompletionReply } = require('../../src/handlers/complete');
 

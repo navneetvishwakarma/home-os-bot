@@ -43,6 +43,9 @@ require.cache[require.resolve('../../src/handlers/complete')] = {
 require.cache[require.resolve('../../src/handlers/queue-session')] = {
   exports: { isCompletionWindowActive }
 };
+require.cache[require.resolve('../../src/services/witty-response')] = {
+  exports: { generateWittyReply: mock.fn(async () => null) }
+};
 
 const { handleMessage } = require('../../src/handlers/message');
 
