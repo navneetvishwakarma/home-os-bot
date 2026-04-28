@@ -52,14 +52,15 @@ node-cron (per household)
 | `src/middleware/guards.js` | `requireMember(handler)` — blocks if no household; `requireAdmin(handler)` — blocks if role is not admin |
 | `src/handlers/onboarding.js` | `/start`, `/create`, `/join` — bypass household guard; handle first contact |
 | `src/handlers/admin.js` | `/invite`, `/members`, `/removemember`, `/promote`, `/demote`, `/leavehousehold` |
-| `src/handlers/commands.js` | `/areas`, `/addarea`, `/removearea`, `/queue`, `/pending`, `/done`, `/delete`, `/settings`, `/settime`, `/setduration`, `/settimezone`, `/help` |
+| `src/handlers/commands.js` | `/areas`, `/addarea`, `/removearea`, `/queue`, `/pending`, `/done`, `/delete`, `/edit`, `/settings`, `/settime`, `/setduration`, `/settimezone`, `/help` |
 | `src/handlers/message.js` | Routes free text: correction → completion reply → task capture |
 | `src/handlers/correction.js` | Calls Gemini `correctTask()`, applies patch via `updateTask()`, clears session |
-| `src/handlers/correction-session.js` | In-memory Map keyed by `chatId:userId`; 10-minute TTL per correction session |
+| `src/handlers/correction-session.js` | In-memory Map keyed by `chatId:userId`; 10-minute TTL per correction session; `startSessionForTask()` allows starting a session on any task (used by `/edit`) |
 | `src/handlers/complete.js` | Parses completion replies (yes / skip / no / free text); calls `bulkComplete()` |
 | `src/handlers/queue-session.js` | In-memory Maps for queued task lists and 2-hour completion windows; keyed by telegramId |
 | `src/cron/scheduler.js` | `Map<householdId, {queueJob, completionJob}>` — one cron pair per household; `refreshScheduleForHousehold()` called on settings change |
 | `src/services/gemini.js` | `classifyTask(text, areas)` and `correctTask(task, text)` — Gemini API calls with JSON parsing and field normalisation |
+| `src/services/witty-response.js` | `generateWittyReply(action, context)` — Gemini-powered JARVIS-style confirmation lines; returns `null` on any failure so callers always fall back to static text |
 | `src/services/supabase.js` | All DB operations; every function scoped to `householdId`; `bulkComplete` handles recurring vs non-recurring tasks differently |
 | `src/services/queue-builder.js` | Greedy bin-pack: CRITICAL+HIGH always included, then `quick-win`-tagged MEDIUM/LOW up to the duration budget |
 | `src/services/calendar.js` | Builds a Google Calendar TEMPLATE URL for the day's queue |

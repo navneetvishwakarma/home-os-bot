@@ -80,6 +80,20 @@ Permanently deletes a pending task. Useful for wrongly captured tasks.
 /delete fridge
 ```
 
+### `/edit <number or name>`
+
+Edits any pending task's details — title, area, criticality, effort, assignee, or tags. Supports 1-based index from `/pending` or case-insensitive partial name match. After the edit prompt, reply in plain English with what to change; the AI applies only the fields you mention.
+
+```
+/edit 3
+→ 📝 Editing: Deep clean fridge
+  [MEDIUM] Kitchen · 45m · Me
+
+  Reply with what to change, e.g. "make it HIGH" or "change area to Bathroom, 45 mins"
+
+make it HIGH, 30 mins
+```
+
 ### `/queue`
 
 Manually triggers today's queue — same output as the scheduled cron job. Does not affect the cron schedule.
@@ -219,7 +233,7 @@ Any message that is not a command and does not trigger another flow is treated a
 The kitchen tap is dripping
 ```
 
-### Correction
+### Correction (most recent task)
 
 Within 10 minutes of capturing a task, type `correct` or `fix this` to start a correction, then describe the change:
 
@@ -228,11 +242,15 @@ correct
 → make it HIGH and assign to Professional
 ```
 
-Or for the most recently added task, just describe the correction directly:
+Or describe the correction directly:
 
 ```
 actually it should be CRITICAL
 ```
+
+### Editing any pending task
+
+Use `/edit <number or name>` to correct any task in the pending list, not just the most recently added one. See the `/edit` command above.
 
 ### Completion replies
 

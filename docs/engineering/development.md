@@ -51,7 +51,7 @@ The bot uses long-polling (not webhooks) so it works without a public URL.
 ## Running tests
 
 ```bash
-npm test                                    # all 218 tests
+npm test                                    # all 222 tests
 node --test test/unit/validators.test.js    # single file
 node --test test/handlers/                  # one directory
 ```
@@ -78,7 +78,7 @@ test/
     message.test.js           # message routing
     onboarding.test.js        # /create, /join
     admin.test.js             # admin commands
-    commands.test.js          # member commands including /done, /delete
+    commands.test.js          # member commands including /done, /delete, /edit
   middleware/
     household.test.js         # household resolution middleware
     guards.test.js            # requireMember, requireAdmin
