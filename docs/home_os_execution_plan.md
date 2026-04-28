@@ -2,32 +2,34 @@
 **Version:** 1.0
 **Last updated:** April 2026
 
+> **Note:** This document was written before the multi-tenant rewrite. Phase 0 credentials, Phase 1 schema scripts, Phase 5 env vars, and Phase 6 smoke tests reflect the original single-tenant design. For the current setup guide see `docs/engineering/development.md`.
+
 ---
 
 ## Phase 0 — Credentials (~15 mins, you do this)
 
 ```
 ✅ Telegram bot token          — from @BotFather
-⬜ Your Telegram user ID       — message @userinfobot
-⬜ Spouse Telegram user ID     — ask spouse to message @userinfobot
 ⬜ Gemini API key              — aistudio.google.com → Get API Key
 ⬜ Supabase Project URL        — supabase.com → Settings → API
 ⬜ Supabase service_role key   — supabase.com → Settings → API (NOT anon key)
 ⬜ Railway account             — railway.app, sign up with GitHub
 ```
 
+> Note: Individual Telegram user IDs are no longer needed at setup time. Access is managed via household membership — users join by running `/create` or `/join <invite-code>` in the bot.
+
 ---
 
 ## Phase 1 — Supabase Schema (~10 mins)
 
 - [ ] Go to Supabase → SQL Editor → New Query
-- [ ] Run `home_os_schema.sql` (creates areas, settings, tasks tables + indexes + trigger)
-- [ ] Verify: 9 rows in areas, 1 row in settings, 0 rows in tasks
+- [ ] Run scripts in order: `scripts/create_schema.sql` → `scripts/multi_tenant_schema.sql`
+- [ ] Verify: 12 rows in areas (per household after first `/create`), tables: households, users, household_members, invite_codes, tasks, areas, settings
 - [ ] Note: tasks table includes recurrence columns (v2-ready, schema reserved now)
 
 **Files:**
-- `home_os_schema.sql` — full schema script
-- `home_os_tasks_table.sql` — tasks table only (updated with recurrence columns)
+- `scripts/create_schema.sql` — base schema (fresh deploy)
+- `scripts/multi_tenant_schema.sql` — adds multi-tenant tables, alters areas/tasks/settings
 
 ---
 
@@ -62,10 +64,10 @@ home-os-bot/
 ## Phase 3 — Core Pipeline (biggest chunk)
 
 ### 3a. `config.js`
-- Load all env vars
-- Export AUTHORISED_IDS as parsed array
+- Load and validate all env vars
 - Export criticality order map
 - Export default tag list
+- No `AUTHORISED_IDS` — access is managed through household membership
 
 ### 3b. `services/gemini.js`
 - `classifyTask(text, areas)` → structured JSON task object
@@ -149,10 +151,11 @@ home-os-bot/
 - [ ] Add all env vars in Railway dashboard:
   ```
   TELEGRAM_BOT_TOKEN
-  TELEGRAM_AUTHORISED_IDS
   GEMINI_API_KEY
+  GEMINI_MODEL            (optional — defaults to gemini-2.5-flash)
   SUPABASE_URL
   SUPABASE_SERVICE_ROLE_KEY
+  COMPLETION_PROMPT_DELAY_MINS  (optional — defaults to 60)
   ```
 - [ ] Railway auto-detects Node.js, runs `node src/bot.js`
 - [ ] Verify bot is online — send `/help` on Telegram
@@ -163,7 +166,7 @@ home-os-bot/
 
 - [ ] Send *"Kitchen tap leaking badly"* → get CRITICAL card back
 - [ ] Reply *"make it HIGH"* → get corrected card, only criticality changed
-- [ ] `/areas` → see 9 default areas
+- [ ] `/areas` → see 12 default areas
 - [ ] `/addarea Terrace` → confirmation, check Supabase dashboard
 - [ ] `/queue` → today's priority list + Google Calendar link
 - [ ] Open Calendar link → event has correct tasks in description
@@ -178,11 +181,14 @@ home-os-bot/
 
 ```
 TELEGRAM_BOT_TOKEN=           # from @BotFather
-TELEGRAM_AUTHORISED_IDS=      # comma-separated: 123456789,987654321
 GEMINI_API_KEY=               # from aistudio.google.com
+GEMINI_MODEL=                 # optional; defaults to gemini-2.5-flash
 SUPABASE_URL=                 # https://xyzxyz.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=    # from Supabase → Settings → API (service_role)
+COMPLETION_PROMPT_DELAY_MINS= # optional; defaults to 60
 ```
+
+> Note: `TELEGRAM_AUTHORISED_IDS` from the original single-tenant design has been removed. Access is managed through household membership.
 
 ---
 
@@ -194,7 +200,7 @@ SUPABASE_SERVICE_ROLE_KEY=    # from Supabase → Settings → API (service_role
 - [x] Daily queue cron + Google Calendar link auto-post
 - [x] Completion confirmation flow
 - [x] All bot commands
-- [x] Authorised users whitelist
+- [x] Multi-tenant household system (invite-based, `/create` + `/join`)
 - [x] Railway deployment
 
 ## V2 Backlog

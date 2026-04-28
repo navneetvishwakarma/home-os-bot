@@ -1,7 +1,9 @@
 # Home OS — Product Requirements Document
 **Version:** 1.0  
-**Status:** Ready for build  
+**Status:** Pre-implementation planning document — superseded by live implementation  
 **Last updated:** April 2026
+
+> **Note:** This document was written before the multi-tenant rewrite. Several sections (auth model, DB schema, command list, env vars) reflect the original single-tenant design and are no longer accurate. For the current architecture see `docs/engineering/architecture.md`; for the current command reference see `docs/engineering/commands-reference.md`; for environment setup see `docs/engineering/development.md`.
 
 ---
 
@@ -29,7 +31,7 @@ Home OS is an AI-powered home task management system for a family with kids. It 
 | Spouse | Telegram, authorised by user ID | Add tasks, voice notes (v2) |
 | Bot | Automated | Classify, queue, remind, complete |
 
-**Authorisation:** Hardcoded list of Telegram numeric user IDs in env var. All other users are silently ignored.
+**Authorisation:** Multi-tenant, invite-based. Any Telegram user can start the bot; they join a household via `/create` (becomes admin) or `/join <invite-code>` (becomes member). Access is controlled by `requireMember` / `requireAdmin` middleware guards backed by the `household_members` table.
 
 ---
 
@@ -118,8 +120,8 @@ name       text  UNIQUE NOT NULL
 created_at timestamptz auto
 ```
 
-**Default seed:**
-Kitchen, Bathroom, Master Bedroom, Kids Room, Living Room, Study, Garden, Garage, General
+**Default seed (12 areas):**
+Kitchen, Bathroom, Common Bathroom, Living Room, Master Bedroom, Guest Bedroom, Office, Garden, Balcony, Utility Room, Entrance, General
 
 ### 4.3 `settings` Table
 ```sql
@@ -321,12 +323,15 @@ Did you complete today's tasks? Reply:
 ## 8. Environment Variables
 
 ```
-TELEGRAM_BOT_TOKEN=
-TELEGRAM_AUTHORISED_IDS=123456789,987654321   # comma-separated numeric IDs
-GEMINI_API_KEY=
-SUPABASE_URL=https://xyzxyz.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=                    # use service_role, not anon key
+TELEGRAM_BOT_TOKEN=           # from @BotFather
+GEMINI_API_KEY=               # from aistudio.google.com
+GEMINI_MODEL=                 # optional; defaults to gemini-2.5-flash
+SUPABASE_URL=                 # https://<project>.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=    # Settings → API → service_role (NOT anon key)
+COMPLETION_PROMPT_DELAY_MINS= # optional; defaults to 60
 ```
+
+> Note: `TELEGRAM_AUTHORISED_IDS` from the original single-tenant design has been removed. Access is now managed through household membership.
 
 > ⚠️ Use `SUPABASE_SERVICE_ROLE_KEY` (not anon key) — the bot is server-side only and needs to bypass RLS.
 
@@ -419,7 +424,7 @@ After deployment, verify these flows end to end:
 
 | Service | Free Tier | Expected Usage | Cost |
 |---|---|---|---|
-| Gemini 2.5 Flash | 1,500 req/day | ~10–20 req/day | $0 |
+| Gemini 2.5 Flash | 1,500 req/day free (per-minute rate limit applies) | ~20–40 req/day | $0 |
 | Supabase | 500MB, unlimited API calls | <1MB for years | $0 |
 | Railway.app | $5 credit/month | ~$1–2/month | $0–3/month |
 | Voice (v2) | Gemini native audio | Negligible | $0 |

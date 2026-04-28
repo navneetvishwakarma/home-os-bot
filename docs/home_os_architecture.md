@@ -1,8 +1,10 @@
 # Home OS — Architecture Document
 **Version:** 1.0  
-**Status:** Final — Ready for Implementation  
+**Status:** Pre-implementation planning document — superseded by live implementation  
 **Last Updated:** April 2026  
 **Prepared by:** Architecture Review
+
+> **Note:** This document was written before the multi-tenant rewrite. Sections on auth (§4.1), config (§4.5), environment variables (§7.2), and the security table (§8) reflect the original single-tenant design. For the current architecture see `docs/engineering/architecture.md`.
 
 ---
 
@@ -79,10 +81,11 @@ Home OS is a **serverless-first, AI-powered home task management system** delive
 
 **Auth Guard (middleware):**
 ```
-Request → Parse Telegram user_id → Check AUTHORISED_IDS array
-  ├── Match found → next()
-  └── No match   → ctx.stop() — silent drop, no reply
+Request → household middleware → upsert user → resolve household membership
+  ├── Member found → ctx.household set → next()
+  └── No household → route to onboarding (/create or /join)
 ```
+> Note: the original single-tenant design used a flat `AUTHORISED_IDS` env-var whitelist. The live system uses `household_members` DB table with `requireMember`/`requireAdmin` guards.
 
 ---
 
@@ -206,12 +209,12 @@ Output: queue[], remaining (buffer minutes)
 
 ### 4.5 Config — `src/config.js`
 
-- Loads and exports all env vars
-- `AUTHORISED_IDS` parsed from comma-separated string to `number[]`
+- Loads and validates all env vars
 - Criticality order map: `{ CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 }`
 - Tag taxonomy array
 - Assigned-to options array
 - `effortMins` clamp bounds: `[1, 480]`
+- No `AUTHORISED_IDS` — access is managed through household membership in the DB
 
 ---
 
@@ -340,11 +343,14 @@ supabase.updateTask(id, patch)
 
 ```
 TELEGRAM_BOT_TOKEN            # from @BotFather
-TELEGRAM_AUTHORISED_IDS       # comma-separated: 123456789,987654321
 GEMINI_API_KEY                # from aistudio.google.com
+GEMINI_MODEL                  # optional; defaults to gemini-2.5-flash
 SUPABASE_URL                  # https://xyzxyz.supabase.co
 SUPABASE_SERVICE_ROLE_KEY     # service_role key — NOT anon key
+COMPLETION_PROMPT_DELAY_MINS  # optional; defaults to 60
 ```
+
+> Note: `TELEGRAM_AUTHORISED_IDS` from the original single-tenant design has been removed. Access is managed through household membership.
 
 > **Security note:** `service_role` key bypasses Supabase RLS. Never expose to any client-side code. This is a server-only bot — safe by architecture.
 
@@ -361,7 +367,7 @@ Local dev → git push main → Railway GitHub webhook → auto-build → deploy
 
 | Concern | Mitigation |
 |---|---|
-| Unauthorised Telegram users | Auth guard middleware — silent drop on every message/command |
+| Unauthorised Telegram users | Household middleware — upserts user, routes to onboarding if no household; `requireMember`/`requireAdmin` guards reject commands |
 | Supabase key exposure | Service role key in env var only, never in code or logs |
 | Gemini prompt injection | System prompt clearly bounds role; user input is `content`, not `system` |
 | Correction state hijack | State keyed by `chatId:userId` — user can only correct their own initiated tasks |
