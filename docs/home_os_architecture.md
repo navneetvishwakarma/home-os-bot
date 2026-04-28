@@ -8,7 +8,7 @@
 
 ## 1. Executive Summary
 
-Home OS is a **serverless-first, AI-powered home task management system** delivered via a Telegram bot. The system accepts natural language input, classifies tasks using Gemini 2.0 Flash, persists to a managed Postgres instance (Supabase), and automates daily execution via cron-based scheduling and Google Calendar integration.
+Home OS is a **serverless-first, AI-powered home task management system** delivered via a Telegram bot. The system accepts natural language input, classifies tasks using Gemini 2.5 Flash, persists to a managed Postgres instance (Supabase), and automates daily execution via cron-based scheduling and Google Calendar integration.
 
 **Design Philosophy:** Thin bot layer. Dumb transport. Smart AI. Reliable persistence.
 
@@ -38,7 +38,7 @@ Home OS is a **serverless-first, AI-powered home task management system** delive
                │                      │
                ▼                      ▼
 ┌──────────────────────┐   ┌─────────────────────────────────────┐
-│  Gemini 2.0 Flash    │   │  Supabase (Managed Postgres)        │
+│  Gemini 2.5 Flash    │   │  Supabase (Managed Postgres)        │
 │  Google AI Studio    │   │  tables: tasks, areas, settings     │
 │  REST API            │   │  REST + Realtime API                │
 └──────────────────────┘   └─────────────────────────────────────┘
@@ -283,7 +283,7 @@ User text
 buildSystemPrompt(areas[])   ← dynamically injects current area list
     │
     ▼
-Gemini 2.0 Flash API call
+Gemini 2.5 Flash API call
     │
     ▼
 Strip markdown fences → JSON.parse()
@@ -447,7 +447,7 @@ Schema is already ready. When building v2, these layers need changes:
 | Decision | Alternatives Considered | Rationale |
 |---|---|---|
 | Telegraf.js | node-telegram-bot-api, Grammy | Best DX, TypeScript support, active community |
-| Gemini 2.0 Flash | GPT-4o-mini, Claude Haiku | Free tier 1500 req/day; sufficient for home use |
+| Gemini 2.5 Flash | GPT-4o-mini, Claude Haiku | Free tier 1500 req/day; sufficient for home use |
 | Supabase | PlanetScale, Firebase, SQLite | Free managed Postgres + visual dashboard for ops |
 | Railway | Render, Fly.io, VPS | Simplest GitHub deploy; free tier fits single process |
 | GCal TEMPLATE URL | OAuth + Calendar API | No credentials, no token refresh, always works |

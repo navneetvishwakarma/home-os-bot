@@ -8,7 +8,7 @@
 ## 1. Product Overview
 
 ### 1.1 What It Is
-Home OS is an AI-powered home task management system for a family with kids. It accepts natural language task input via a Telegram bot, classifies tasks using Gemini 2.0 Flash, persists them in Supabase, and proactively manages daily execution via Google Calendar integration and cron-based automation.
+Home OS is an AI-powered home task management system for a family with kids. It accepts natural language task input via a Telegram bot, classifies tasks using Gemini 2.5 Flash, persists them in Supabase, and proactively manages daily execution via Google Calendar integration and cron-based automation.
 
 ### 1.2 Problem It Solves
 - Home tasks are captured informally (mental notes, WhatsApp messages) and lost
@@ -43,7 +43,7 @@ You / Spouse (Telegram text message)
         ↓
   Authorised user check
         ↓
-  Gemini 2.0 Flash  ←  system prompt with home areas
+  Gemini 2.5 Flash  ←  system prompt with home areas
         ↓
   Supabase (Postgres) — write classified task
         ↓
@@ -57,11 +57,11 @@ You / Spouse (Telegram text message)
 | Layer | Choice | Reason |
 |---|---|---|
 | Bot runtime | Node.js 20 + Telegraf.js | Lightweight, excellent Telegram support |
-| AI | Gemini 2.0 Flash | Free tier (1500 req/day), reliable JSON output |
+| AI | Gemini 2.5 Flash | Free tier (1500 req/day), reliable JSON output |
 | Database | Supabase (Postgres) | Free tier, queryable, visual dashboard, open source |
 | Scheduler | node-cron | Daily queue post + completion prompt |
 | Hosting | Railway.app | Free tier, always-on, GitHub auto-deploy |
-| Voice (v2) | Gemini 2.0 native audio | No Whisper needed |
+| Voice (v2) | Gemini 2.5 native audio | No Whisper needed |
 
 ### 3.3 Project Structure
 ```
@@ -74,7 +74,7 @@ home-os-bot/
 │   │   ├── complete.js        ← bulk complete confirmation flow
 │   │   └── commands.js        ← /areas /queue /settings etc.
 │   ├── services/
-│   │   ├── gemini.js          ← Gemini 2.0 Flash API wrapper
+│   │   ├── gemini.js          ← Gemini 2.5 Flash API wrapper
 │   │   ├── supabase.js        ← all DB read/write operations
 │   │   └── calendar.js        ← Google Calendar URL builder
 │   ├── cron/
@@ -374,7 +374,7 @@ SUPABASE_SERVICE_ROLE_KEY=                    # use service_role, not anon key
 
 ## 12. V2 Backlog (After Stable)
 
-- [ ] Voice note support — Gemini 2.0 native audio transcription
+- [ ] Voice note support — Gemini 2.5 native audio transcription
 - [ ] Recurrence engine — auto-recreate tasks on schedule (schema already ready)
 - [ ] Weekly summary — every Sunday: *"7 tasks completed, 3 pending"*
 - [ ] Completion streak — gamification for consistency
@@ -419,7 +419,7 @@ After deployment, verify these flows end to end:
 
 | Service | Free Tier | Expected Usage | Cost |
 |---|---|---|---|
-| Gemini 2.0 Flash | 1,500 req/day | ~10–20 req/day | $0 |
+| Gemini 2.5 Flash | 1,500 req/day | ~10–20 req/day | $0 |
 | Supabase | 500MB, unlimited API calls | <1MB for years | $0 |
 | Railway.app | $5 credit/month | ~$1–2/month | $0–3/month |
 | Voice (v2) | Gemini native audio | Negligible | $0 |
