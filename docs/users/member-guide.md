@@ -45,6 +45,35 @@ Alternatively, type `correct` or `fix this` to start a correction on your most r
 
 ---
 
+## Editing any pending task
+
+Use `/edit` to change the details of any task in the pending list — not just the one you just added.
+
+### By number (from /pending list)
+
+```
+/edit 3
+```
+
+### By name (partial match works)
+
+```
+/edit exhaust fan
+```
+
+The bot shows the current task details and prompts you to describe the change:
+
+```
+📝 Editing: Fix bathroom exhaust fan
+[HIGH] Bathroom · 30m · Me
+
+Reply with what to change, e.g. "make it CRITICAL" or "change area to Kitchen, 45 mins"
+```
+
+Reply in plain English — the AI applies only the fields you mention, leaving everything else unchanged.
+
+---
+
 ## Viewing pending tasks
 
 ```

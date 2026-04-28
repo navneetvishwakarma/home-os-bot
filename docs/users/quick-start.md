@@ -127,6 +127,7 @@ The bot corrects only the fields you mentioned and confirms the change.
 | `/pending` | See all tasks, numbered |
 | `/done 2` | Mark task #2 complete |
 | `/done fix tap` | Mark by name (partial match works) |
+| `/edit 2` | Edit task #2 details (area, priority, effort…) |
 | `/delete 3` | Delete a wrongly captured task |
 | `/queue` | Manually trigger today's queue |
 | `/help` | Full command list |
