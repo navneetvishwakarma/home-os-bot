@@ -18,6 +18,7 @@ const { formatQueueMessage } = require("../utils/formatters");
 const { parseDurationMinutes, parseTimeHHMM, parseTimezone } = require("../utils/validators");
 const { error } = require("../utils/logger");
 const { generateWittyReply } = require("../services/witty-response");
+const { startSessionForTask } = require("./correction-session");
 
 function householdHeader(name) {
   return `🏠 ${name}\n\n`;
@@ -108,6 +109,20 @@ async function registerCommands(bot) {
     return ctx.reply(witty || `🗑️ Deleted: ${task.title}`);
   }));
 
+  bot.command("edit", requireMember(async (ctx) => {
+    const query = ctx.message.text.replace(/^\/edit\s*/i, "").trim();
+    if (!query) return ctx.reply("Usage: /edit <number or task name>\nExample: /edit 3");
+    const tasks = await getIncompleteTasksByPriority(ctx.household.id);
+    const task = findTaskByQuery(tasks, query);
+    if (!task) return ctx.reply("❌ Task not found. Use /pending to see the list.");
+    startSessionForTask(ctx.chat.id, ctx.from.id, task);
+    return ctx.reply(
+      `📝 Editing: ${task.title}\n` +
+      `[${task.criticality}] ${task.area} · ${task.effortMins}m · ${task.assignedTo}\n\n` +
+      `Reply with what to change, e.g. "make it HIGH" or "change area to Bathroom, 45 mins"`
+    );
+  }));
+
   bot.command("settings", requireMember(async (ctx) => {
     const settings = await getSettings(ctx.household.id);
     await ctx.reply(
@@ -168,6 +183,7 @@ async function registerCommands(bot) {
       "/pending — all pending tasks (numbered)",
       "/done <number or name> — mark a task complete",
       "/delete <number or name> — delete a task",
+      "/edit <number or name> — edit a task's details",
       "/settings — show settings",
       "/leavehousehold — leave this household",
       "/help — this message"

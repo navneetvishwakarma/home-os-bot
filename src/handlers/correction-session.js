@@ -31,6 +31,10 @@ function getSession(chatId, userId) {
   return session;
 }
 
+function startSessionForTask(chatId, userId, task) {
+  sessions.set(keyOf(chatId, userId), { task, expiresAt: Date.now() + TTL_MS });
+}
+
 function clearSession(chatId, userId) {
   sessions.delete(keyOf(chatId, userId));
 }
@@ -44,6 +48,7 @@ function purgeExpiredSessions() {
 module.exports = {
   setRecentTask,
   startSession,
+  startSessionForTask,
   getSession,
   clearSession,
   purgeExpiredSessions

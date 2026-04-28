@@ -14,6 +14,7 @@ const getSettings = mock.fn(async () => ({ calendarTime: '18:00', calendarDurati
 const updateSettings = mock.fn(async () => {});
 
 const refreshScheduleForHousehold = mock.fn(async () => {});
+const startSessionForTask = mock.fn();
 
 require.cache[require.resolve('../../src/services/supabase')] = {
   exports: { getAreas, addArea, removeArea, bulkComplete, deleteTask, getHouseholdMembers, getMembership, getIncompleteTasksByPriority, getSettings, updateSettings }
@@ -23,6 +24,9 @@ require.cache[require.resolve('../../src/cron/scheduler')] = {
 };
 require.cache[require.resolve('../../src/services/witty-response')] = {
   exports: { generateWittyReply: mock.fn(async () => null) }
+};
+require.cache[require.resolve('../../src/handlers/correction-session')] = {
+  exports: { startSessionForTask }
 };
 // guards and validators have no external deps — let them run natively
 delete require.cache[require.resolve('../../src/middleware/guards')];
@@ -44,6 +48,8 @@ function makeCtx(text, overrides = {}) {
     householdUser: { id: 'u1', telegramId: '111' },
     memberRole: 'admin',
     message: { text },
+    chat: { id: 'chat1' },
+    from: { id: 'user1' },
     reply: mock.fn(async () => {}),
     ...overrides
   };
@@ -65,6 +71,7 @@ describe('commands', () => {
     getSettings.mock.resetCalls();
     updateSettings.mock.resetCalls();
     refreshScheduleForHousehold.mock.resetCalls();
+    startSessionForTask.mock.resetCalls();
 
     getAreas.mock.mockImplementation(async () => []);
     getHouseholdMembers.mock.mockImplementation(async () => []);
@@ -296,6 +303,46 @@ describe('commands', () => {
       await handlers['settimezone'](ctx);
       assert.equal(updateSettings.mock.calls.length, 0);
       assert.ok(ctx.reply.mock.calls[0].arguments[0].includes('Invalid timezone'));
+    });
+  });
+
+  describe('/edit', () => {
+    it('replies with usage error when no argument given', async () => {
+      const ctx = makeCtx('/edit');
+      await handlers['edit'](ctx);
+      assert.ok(ctx.reply.mock.calls[0].arguments[0].includes('Usage'));
+      assert.equal(startSessionForTask.mock.calls.length, 0);
+    });
+
+    it('starts session and shows edit prompt for task by number', async () => {
+      const task = { id: 't1', title: 'Fix tap', criticality: 'HIGH', effortMins: 30, area: 'Kitchen', assignedTo: 'Me' };
+      getIncompleteTasksByPriority.mock.mockImplementation(async () => [task]);
+      const ctx = makeCtx('/edit 1');
+      await handlers['edit'](ctx);
+      assert.equal(startSessionForTask.mock.calls.length, 1);
+      assert.equal(startSessionForTask.mock.calls[0].arguments[2], task);
+      const reply = ctx.reply.mock.calls[0].arguments[0];
+      assert.ok(reply.includes('Fix tap'));
+      assert.ok(reply.includes('📝'));
+    });
+
+    it('starts session and shows edit prompt for task by name substring', async () => {
+      const task = { id: 't1', title: 'Fix tap', criticality: 'HIGH', effortMins: 30, area: 'Kitchen', assignedTo: 'Me' };
+      getIncompleteTasksByPriority.mock.mockImplementation(async () => [task]);
+      const ctx = makeCtx('/edit fix tap');
+      await handlers['edit'](ctx);
+      assert.equal(startSessionForTask.mock.calls.length, 1);
+      assert.equal(startSessionForTask.mock.calls[0].arguments[2], task);
+    });
+
+    it('replies "not found" when query matches nothing', async () => {
+      getIncompleteTasksByPriority.mock.mockImplementation(async () => [
+        { id: 't1', title: 'Fix tap', criticality: 'HIGH', effortMins: 30, area: 'Kitchen', assignedTo: 'Me' }
+      ]);
+      const ctx = makeCtx('/edit paint fence');
+      await handlers['edit'](ctx);
+      assert.equal(startSessionForTask.mock.calls.length, 0);
+      assert.ok(ctx.reply.mock.calls[0].arguments[0].includes('not found'));
     });
   });
 
