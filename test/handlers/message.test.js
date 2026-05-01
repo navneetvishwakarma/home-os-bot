@@ -172,11 +172,37 @@ describe('handleMessage', () => {
     assert.ok(ctx.reply.mock.calls[0].arguments[0].includes('Balcony'));
   });
 
-  it('replies with error message when classifyTask throws', async () => {
+  it('replies with generic error message when classifyTask throws an error without a status', async () => {
     classifyTask.mock.mockImplementation(async () => { throw new Error('Gemini error'); });
     const ctx = makeCtx('fix tap');
     await handleMessage(ctx);
     assert.equal(ctx.reply.mock.calls.length, 1);
     assert.ok(ctx.reply.mock.calls[0].arguments[0].includes('went wrong'));
+  });
+
+  it('replies with AI overload message when classifyTask throws a 503 error', async () => {
+    const overloadErr = new Error('Service overloaded');
+    overloadErr.status = 503;
+    classifyTask.mock.mockImplementation(async () => { throw overloadErr; });
+    const ctx = makeCtx('fix tap');
+    await handleMessage(ctx);
+    assert.equal(ctx.reply.mock.calls.length, 1);
+    assert.ok(
+      ctx.reply.mock.calls[0].arguments[0].includes('temporarily overloaded'),
+      'should mention temporarily overloaded'
+    );
+  });
+
+  it('replies with AI overload message when classifyTask throws a 429 error', async () => {
+    const rateLimitErr = new Error('Rate limited');
+    rateLimitErr.status = 429;
+    classifyTask.mock.mockImplementation(async () => { throw rateLimitErr; });
+    const ctx = makeCtx('fix tap');
+    await handleMessage(ctx);
+    assert.equal(ctx.reply.mock.calls.length, 1);
+    assert.ok(
+      ctx.reply.mock.calls[0].arguments[0].includes('temporarily overloaded'),
+      'should mention temporarily overloaded'
+    );
   });
 });
