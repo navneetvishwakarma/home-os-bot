@@ -5,7 +5,7 @@
 | Document | Description |
 |---|---|
 | [Quick Start](users/quick-start.md) | Create or join a household and capture your first task |
-| [Member Guide](users/member-guide.md) | Daily usage: adding tasks, queue, completion, /done, /delete |
+| [Member Guide](users/member-guide.md) | Daily usage: adding tasks, queue, completion, /done, /delete, /edit |
 | [Admin Guide](users/admin-guide.md) | Membership management, settings, invite codes |
 
 ## For engineers
@@ -18,12 +18,23 @@
 | [Development Guide](engineering/development.md) | Local setup, test runner, CJS mock pattern, adding commands |
 | [Deployment Guide](engineering/deployment.md) | Railway setup, env vars, DB scripts, health checking |
 
-## Design documents (historical)
+## Architecture Decision Records
+
+Significant decisions with context, alternatives considered, and consequences:
+
+| ADR | Decision |
+|---|---|
+| [ADR-001](adr/ADR-001-telegram-as-primary-interface.md) | Telegram as the sole interface |
+| [ADR-002](adr/ADR-002-gemini-for-ai-classification.md) | Gemini 2.5 Flash for AI classification |
+| [ADR-003](adr/ADR-003-supabase-for-persistence.md) | Supabase (managed Postgres) for persistence |
+| [ADR-004](adr/ADR-004-in-memory-session-state.md) | In-memory Maps for transient session state |
+| [ADR-005](adr/ADR-005-google-calendar-template-url.md) | Google Calendar integration via TEMPLATE URL |
+| [ADR-006](adr/ADR-006-multi-tenant-household-model.md) | Multi-tenant household model with invite codes |
+| [ADR-007](adr/ADR-007-one-household-per-user-v1.md) | One household per user (v1 constraint) |
+| [ADR-008](adr/ADR-008-railway-hosting-long-polling.md) | Railway hosting; long polling over webhook |
+
+## Future design
 
 | Document | Description |
 |---|---|
-| [PRD](home_os_PRD.md) | Original product requirements |
-| [Execution Plan](home_os_execution_plan.md) | Phase-by-phase build plan |
-| [Multi-Tenant Design](multi-tenant-support.md) | Architecture decision record for multi-household support |
-| [Multi-Household Per User Plan](multi-household-per-user-plan.md) | Future V2 design (not implemented) |
-| [Architecture Overview](home_os_architecture.md) | Early architecture notes |
+| [Multi-Household Per User](multi-household-per-user-plan.md) | Design for lifting the one-household-per-user constraint (deferred — see ADR-007) |
