@@ -8,6 +8,7 @@ const {
   normalizeTags,
   safeParseJsonObject
 } = require("../utils/validators");
+const { withRetry } = require("../utils/retry");
 
 const client = new GoogleGenAI({ apiKey: config.geminiApiKey });
 
@@ -120,10 +121,10 @@ function sanitizePatch(rawPatch) {
 }
 
 async function generateJson(prompt) {
-  const response = await client.models.generateContent({
-    model: config.geminiModel,
-    contents: prompt
-  });
+  const response = await withRetry(
+    () => client.models.generateContent({ model: config.geminiModel, contents: prompt }),
+    { retryOn: [503, 429], maxAttempts: 3, baseDelayMs: 1000 }
+  );
   const text = response.text || "";
   const parsed = safeParseJsonObject(text);
   if (!parsed) {
