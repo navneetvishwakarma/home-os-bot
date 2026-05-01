@@ -205,4 +205,51 @@ describe('handleMessage', () => {
       'should mention temporarily overloaded'
     );
   });
+
+  it('shows fallback banner when classifyTask returns _isFallback task', async () => {
+    classifyTask.mock.mockImplementation(async () => ({
+      title: 'fix the leaky tap', area: 'General', criticality: 'MEDIUM',
+      effortMins: 30, assignedTo: 'Me', tags: [], reasoning: '', isNewArea: false,
+      isRecurring: false, recurrenceIntervalDays: null, nextDueDate: null,
+      _isFallback: true
+    }));
+    const ctx = makeCtx('fix the leaky tap');
+    await handleMessage(ctx);
+    assert.equal(ctx.reply.mock.calls.length, 1);
+    assert.ok(
+      ctx.reply.mock.calls[0].arguments[0].includes('AI unavailable'),
+      'reply should include AI unavailable banner'
+    );
+    assert.ok(
+      ctx.reply.mock.calls[0].arguments[0].includes("Reply 'correct'"),
+      'reply should prompt user to correct'
+    );
+  });
+
+  it('does not pass _isFallback to createTask', async () => {
+    classifyTask.mock.mockImplementation(async () => ({
+      title: 'fix the leaky tap', area: 'General', criticality: 'MEDIUM',
+      effortMins: 30, assignedTo: 'Me', tags: [], reasoning: '', isNewArea: false,
+      isRecurring: false, recurrenceIntervalDays: null, nextDueDate: null,
+      _isFallback: true
+    }));
+    const ctx = makeCtx('fix the leaky tap');
+    await handleMessage(ctx);
+    const taskArg = createTask.mock.calls[0].arguments[1];
+    assert.equal(taskArg._isFallback, undefined);
+  });
+
+  it('skips witty reply and still saves task when fallback is active', async () => {
+    classifyTask.mock.mockImplementation(async () => ({
+      title: 'buy milk', area: 'General', criticality: 'MEDIUM',
+      effortMins: 30, assignedTo: 'Me', tags: [], reasoning: '', isNewArea: false,
+      isRecurring: false, recurrenceIntervalDays: null, nextDueDate: null,
+      _isFallback: true
+    }));
+    const ctx = makeCtx('buy milk');
+    await handleMessage(ctx);
+    assert.equal(createTask.mock.calls.length, 1);
+    assert.equal(setRecentTask.mock.calls.length, 1);
+    assert.equal(ctx.reply.mock.calls.length, 1);
+  });
 });

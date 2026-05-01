@@ -39,7 +39,7 @@ async function handleMessage(ctx) {
 
   try {
     const areas = await getAreas(ctx.household.id);
-    const task = await classifyTask(incoming, areas);
+    const { _isFallback, ...task } = await classifyTask(incoming, areas);
     const taskId = await createTask(ctx.household.id, {
       ...task,
       rawInput: incoming,
@@ -52,8 +52,12 @@ async function handleMessage(ctx) {
     }
 
     const block = `🏠 ${ctx.household.name}\n\n${formatTaskCard({ ...task, id: taskId })}`;
-    const witty = await generateWittyReply('task_added', { title: task.title, area: task.area, assignedTo: task.assignedTo });
-    await ctx.reply(witty ? `${block}\n\n${witty}` : block);
+    if (_isFallback) {
+      await ctx.reply(`${block}\n\n⚠️ AI unavailable — saved with defaults. Reply 'correct' to adjust.`);
+    } else {
+      const witty = await generateWittyReply('task_added', { title: task.title, area: task.area, assignedTo: task.assignedTo });
+      await ctx.reply(witty ? `${block}\n\n${witty}` : block);
+    }
     setRecentTask(ctx.chat.id, ctx.from.id, { ...task, id: taskId });
   } catch (err) {
     error("task_capture_failed", { message: err.message, userId, householdId: ctx.household.id });

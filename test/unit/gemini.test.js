@@ -61,11 +61,33 @@ describe('classifyTask', () => {
     assert.equal(task.area, 'Balcony');
   });
 
-  it('propagates the error when withRetry exhausts', async () => {
+  it('returns a fallback task when withRetry exhausts on 503', async () => {
     const overloadErr = new Error('Service overloaded');
     overloadErr.status = 503;
     withRetry.mock.mockImplementation(async () => { throw overloadErr; });
-    await assert.rejects(() => classifyTask('fix tap', ['Kitchen']), { message: 'Service overloaded' });
+    const task = await classifyTask('fix the leaky tap', ['Kitchen']);
+    assert.equal(task.title, 'fix the leaky tap');
+    assert.equal(task.area, 'General');
+    assert.equal(task.criticality, 'MEDIUM');
+    assert.equal(task.effortMins, 30);
+    assert.equal(task.isNewArea, false);
+    assert.equal(task._isFallback, true);
+  });
+
+  it('returns a fallback task when withRetry exhausts on 429', async () => {
+    const rateLimitErr = new Error('Rate limited');
+    rateLimitErr.status = 429;
+    withRetry.mock.mockImplementation(async () => { throw rateLimitErr; });
+    const task = await classifyTask('buy milk', ['Kitchen']);
+    assert.equal(task._isFallback, true);
+    assert.equal(task.title, 'buy milk');
+  });
+
+  it('still propagates non-overload errors from withRetry', async () => {
+    const badKeyErr = new Error('Invalid API key');
+    badKeyErr.status = 401;
+    withRetry.mock.mockImplementation(async () => { throw badKeyErr; });
+    await assert.rejects(() => classifyTask('fix tap', ['Kitchen']), { message: 'Invalid API key' });
   });
 
   it('throws when Gemini returns invalid JSON', async () => {

@@ -134,8 +134,29 @@ async function generateJson(prompt) {
 }
 
 async function classifyTask(text, areas) {
-  const raw = await generateJson(buildClassificationPrompt(text, areas));
-  return sanitizeTask(raw, areas, text);
+  try {
+    const raw = await generateJson(buildClassificationPrompt(text, areas));
+    return sanitizeTask(raw, areas, text);
+  } catch (err) {
+    if (err.status === 503 || err.status === 429) {
+      return {
+        title: String(text).trim() || "Untitled task",
+        area: "General",
+        isNewArea: false,
+        criticality: "MEDIUM",
+        effortMins: 30,
+        tags: [],
+        assignedTo: "Me",
+        deadline: null,
+        reasoning: "",
+        isRecurring: false,
+        recurrenceIntervalDays: null,
+        nextDueDate: null,
+        _isFallback: true
+      };
+    }
+    throw err;
+  }
 }
 
 async function correctTask(existingTask, correctionText) {
