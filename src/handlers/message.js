@@ -57,7 +57,12 @@ async function handleMessage(ctx) {
     setRecentTask(ctx.chat.id, ctx.from.id, { ...task, id: taskId });
   } catch (err) {
     error("task_capture_failed", { message: err.message, userId, householdId: ctx.household.id });
-    await ctx.reply("⚠️ Something went wrong. Try rephrasing?");
+    const isAiOverload = err.status === 503 || err.status === 429;
+    await ctx.reply(
+      isAiOverload
+        ? "⚠️ AI is temporarily overloaded. Try again in a moment."
+        : "⚠️ Something went wrong. Try rephrasing?"
+    );
   }
 }
 
