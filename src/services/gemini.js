@@ -9,6 +9,7 @@ const {
   safeParseJsonObject
 } = require("../utils/validators");
 const { withRetry } = require("../utils/retry");
+const { captureException } = require("./sentry");
 
 const client = new GoogleGenAI({ apiKey: config.geminiApiKey });
 
@@ -139,6 +140,7 @@ async function classifyTask(text, areas) {
     return sanitizeTask(raw, areas, text);
   } catch (err) {
     if (err.status === 503 || err.status === 429) {
+      captureException(err, { operation: 'classifyTask', inputLength: String(text).length });
       return {
         title: String(text).trim() || "Untitled task",
         area: "General",

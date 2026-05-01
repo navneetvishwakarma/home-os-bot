@@ -8,6 +8,9 @@ const { handleMessage } = require("./handlers/message");
 const { purgeExpiredSessions } = require("./handlers/correction-session");
 const { startScheduler } = require("./cron/scheduler");
 const { info, error } = require("./utils/logger");
+const { initSentry } = require("./services/sentry");
+
+initSentry();
 
 const bot = new Telegraf(config.telegramBotToken);
 
