@@ -106,6 +106,16 @@ async function getIncompleteTasksByPriority(householdId) {
     });
 }
 
+async function getAllTasks(householdId) {
+  const { data, error } = await supabase
+    .from("tasks")
+    .select("*")
+    .eq("household_id", householdId)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return data.map(fromDbTask);
+}
+
 async function bulkComplete(ids) {
   if (!ids.length) return 0;
   const now = new Date().toISOString();
@@ -445,6 +455,7 @@ module.exports = {
   // Tasks
   createTask,
   updateTask,
+  getAllTasks,
   getIncompleteTasksByPriority,
   bulkComplete,
   deleteTask,

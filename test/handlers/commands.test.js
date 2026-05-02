@@ -15,9 +15,20 @@ const updateSettings = mock.fn(async () => {});
 
 const refreshScheduleForHousehold = mock.fn(async () => {});
 const startSessionForTask = mock.fn();
+const buildExportPayload = mock.fn(async () => ({
+  exportedAt: '2026-05-01T00:00:00.000Z',
+  household: { id: 'h1', name: 'The Sharma House', plan: 'free' },
+  tasks: [],
+  areas: [],
+  settings: { calendarTime: '18:00', calendarDuration: 60, timezone: 'Asia/Kolkata' },
+  members: []
+}));
 
 require.cache[require.resolve('../../src/services/supabase')] = {
   exports: { getAreas, addArea, removeArea, bulkComplete, deleteTask, getHouseholdMembers, getMembership, getIncompleteTasksByPriority, getSettings, updateSettings }
+};
+require.cache[require.resolve('../../src/services/export')] = {
+  exports: { buildExportPayload }
 };
 require.cache[require.resolve('../../src/cron/scheduler')] = {
   exports: { refreshScheduleForHousehold }
@@ -72,6 +83,7 @@ describe('commands', () => {
     updateSettings.mock.resetCalls();
     refreshScheduleForHousehold.mock.resetCalls();
     startSessionForTask.mock.resetCalls();
+    buildExportPayload.mock.resetCalls();
 
     getAreas.mock.mockImplementation(async () => []);
     getHouseholdMembers.mock.mockImplementation(async () => []);
@@ -375,6 +387,25 @@ describe('commands', () => {
       const ctx = makeCtx('/help');
       await handlers['help'](ctx);
       assert.ok(ctx.reply.mock.calls[0].arguments[0].includes('The Sharma House'));
+    });
+  });
+
+  describe('/export', () => {
+    it('sends a JSON document with all household data', async () => {
+      const replyWithDocument = mock.fn(async () => {});
+      const ctx = makeCtx('/export', { replyWithDocument });
+      await handlers['export'](ctx);
+
+      assert.equal(buildExportPayload.mock.calls.length, 1);
+      assert.equal(buildExportPayload.mock.calls[0].arguments[0], 'h1');
+
+      assert.equal(replyWithDocument.mock.calls.length, 1);
+      const [doc] = replyWithDocument.mock.calls[0].arguments;
+      assert.equal(doc.filename, 'export.json');
+      assert.ok(Buffer.isBuffer(doc.source), 'source should be a Buffer');
+
+      const parsed = JSON.parse(doc.source.toString('utf8'));
+      assert.equal(parsed.household.name, 'The Sharma House');
     });
   });
 });
