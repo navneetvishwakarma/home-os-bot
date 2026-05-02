@@ -403,7 +403,8 @@ describe('commands', () => {
 
       assert.equal(replyWithDocument.mock.calls.length, 1);
       const [doc] = replyWithDocument.mock.calls[0].arguments;
-      assert.equal(doc.filename, 'export.json');
+      const today = new Date().toISOString().slice(0, 10);
+      assert.equal(doc.filename, `export-the-sharma-house-${today}.json`);
       assert.ok(Buffer.isBuffer(doc.source), 'source should be a Buffer');
 
       const parsed = JSON.parse(doc.source.toString('utf8'));

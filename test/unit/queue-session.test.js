@@ -61,5 +61,26 @@ describe('queue-session', () => {
       endCompletionWindow('chat-end');
       assert.equal(isCompletionWindowActive('chat-end'), false);
     });
+
+    it('also clears queued tasks when window ends', () => {
+      setQueuedTasks('chat-cleanup', TASKS);
+      startCompletionWindow('chat-cleanup');
+      endCompletionWindow('chat-cleanup');
+      assert.deepEqual(getQueuedTasks('chat-cleanup'), []);
+    });
+  });
+
+  describe('isCompletionWindowActive — expired TTL clears queueByChat', () => {
+    it('clears queued tasks when window expires on check', () => {
+      setQueuedTasks('chat-ttl-clean', TASKS);
+      startCompletionWindow('chat-ttl-clean');
+
+      const originalNow = Date.now;
+      Date.now = () => originalNow() + 3 * 60 * 60 * 1000;
+      isCompletionWindowActive('chat-ttl-clean');
+      Date.now = originalNow;
+
+      assert.deepEqual(getQueuedTasks('chat-ttl-clean'), []);
+    });
   });
 });
