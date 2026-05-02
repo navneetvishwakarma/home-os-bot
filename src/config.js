@@ -41,7 +41,8 @@ const config = {
   geminiModel: parseGeminiModel(process.env.GEMINI_MODEL),
   supabaseUrl: requireEnv("SUPABASE_URL"),
   supabaseServiceRoleKey: requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
-  completionPromptDelayMins: parseDuration(process.env.COMPLETION_PROMPT_DELAY_MINS)
+  completionPromptDelayMins: parseDuration(process.env.COMPLETION_PROMPT_DELAY_MINS),
+  webhookUrl: process.env.WEBHOOK_URL?.trim() || null
 };
 
 module.exports = {
