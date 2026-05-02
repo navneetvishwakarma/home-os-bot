@@ -9,6 +9,7 @@ const { purgeExpiredSessions } = require("./handlers/correction-session");
 const { startScheduler } = require("./cron/scheduler");
 const { info, error } = require("./utils/logger");
 const { initSentry } = require("./services/sentry");
+const { launchBot } = require("./utils/launch-bot");
 
 initSentry();
 
@@ -44,7 +45,7 @@ registerAdminCommands(bot);
 registerCommands(bot)
   .then(async () => {
     await startScheduler(bot);
-    return bot.launch();
+    return launchBot(bot, config, process.env);
   })
   .then(() => info("bot_started"))
   .catch((err) => {
