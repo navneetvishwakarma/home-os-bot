@@ -27,6 +27,7 @@ const SESSION = {
 
 function makeCtx(correctionText) {
   return {
+    household: { id: 'h1' },
     message: { text: correctionText },
     chat: { id: 'chat1' },
     from: { id: 'user1' },
@@ -52,14 +53,25 @@ describe('handleCorrection', () => {
     assert.equal(correctTask.mock.calls[0].arguments[1], 'make it HIGH');
   });
 
-  it('calls updateTask with the task id and the returned patch', async () => {
+  it('calls updateTask with householdId, task id, and the returned patch', async () => {
     const patch = { criticality: 'CRITICAL', effortMins: 45 };
     correctTask.mock.mockImplementation(async () => patch);
     const ctx = makeCtx('change priority and effort');
     await handleCorrection(ctx, SESSION);
     assert.equal(updateTask.mock.calls.length, 1);
-    assert.equal(updateTask.mock.calls[0].arguments[0], 'task-1');
-    assert.deepEqual(updateTask.mock.calls[0].arguments[1], patch);
+    assert.equal(updateTask.mock.calls[0].arguments[0], 'h1');
+    assert.equal(updateTask.mock.calls[0].arguments[1], 'task-1');
+    assert.deepEqual(updateTask.mock.calls[0].arguments[2], patch);
+  });
+
+  it('does not call updateTask and keeps session open when patch is empty', async () => {
+    correctTask.mock.mockImplementation(async () => ({}));
+    const ctx = makeCtx('some unrecognisable text');
+    await handleCorrection(ctx, SESSION);
+    assert.equal(updateTask.mock.calls.length, 0);
+    assert.equal(clearSession.mock.calls.length, 0);
+    assert.equal(ctx.reply.mock.calls.length, 1);
+    assert.ok(ctx.reply.mock.calls[0].arguments[0].includes('parse'));
   });
 
   it('clears the session after correction', async () => {

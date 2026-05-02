@@ -53,7 +53,7 @@ require.cache[require.resolve('../../src/utils/logger')] = {
   exports: { info: mock.fn(), warn: warnFn, error: mock.fn() }
 };
 
-const { bulkComplete, getIncompleteTasksByPriority, getAllHouseholdsWithSettings, getHousehold } = require('../../src/services/supabase');
+const { bulkComplete, getIncompleteTasksByPriority, getAllHouseholdsWithSettings, getHousehold, updateTask, deleteTask } = require('../../src/services/supabase');
 
 // ─── bulkComplete ─────────────────────────────────────────────────────────────
 
@@ -291,5 +291,42 @@ describe('getHousehold', () => {
     responseQueue.push({ data: { id: 'h2', name: 'Pro House', plan: 'pro' }, error: null });
     const result = await getHousehold('h2');
     assert.equal(result.plan, 'pro');
+  });
+});
+
+// ─── updateTask ───────────────────────────────────────────────────────────────
+
+describe('updateTask', () => {
+  beforeEach(() => { responseQueue = []; });
+
+  it('resolves without error when patch is applied', async () => {
+    responseQueue.push({ error: null });
+    await assert.doesNotReject(() => updateTask('h1', 'task-1', { criticality: 'HIGH' }));
+  });
+
+  it('does nothing and resolves when patch is empty', async () => {
+    await assert.doesNotReject(() => updateTask('h1', 'task-1', {}));
+    assert.equal(responseQueue.length, 0); // no DB call made
+  });
+
+  it('throws on DB error', async () => {
+    responseQueue.push({ error: new Error('db fail') });
+    await assert.rejects(() => updateTask('h1', 'task-1', { criticality: 'LOW' }));
+  });
+});
+
+// ─── deleteTask ───────────────────────────────────────────────────────────────
+
+describe('deleteTask', () => {
+  beforeEach(() => { responseQueue = []; });
+
+  it('resolves without error on success', async () => {
+    responseQueue.push({ error: null });
+    await assert.doesNotReject(() => deleteTask('h1', 'task-1'));
+  });
+
+  it('throws on DB error', async () => {
+    responseQueue.push({ error: new Error('db fail') });
+    await assert.rejects(() => deleteTask('h1', 'task-1'));
   });
 });

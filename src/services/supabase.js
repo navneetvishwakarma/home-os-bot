@@ -80,10 +80,10 @@ async function createTask(householdId, task) {
   return data.id;
 }
 
-async function updateTask(id, patch) {
+async function updateTask(householdId, id, patch) {
   const mappedPatch = toDbPatch(patch);
   if (!Object.keys(mappedPatch).length) return;
-  const { error } = await supabase.from("tasks").update(mappedPatch).eq("id", id);
+  const { error } = await supabase.from("tasks").update(mappedPatch).eq("household_id", householdId).eq("id", id);
   if (error) throw error;
 }
 
@@ -156,8 +156,8 @@ async function bulkComplete(ids) {
   return completed;
 }
 
-async function deleteTask(id) {
-  const { error } = await supabase.from("tasks").delete().eq("id", id);
+async function deleteTask(householdId, id) {
+  const { error } = await supabase.from("tasks").delete().eq("household_id", householdId).eq("id", id);
   if (error) throw error;
 }
 
@@ -390,11 +390,13 @@ async function findUserByTelegramId(telegramId) {
 }
 
 async function getMemberByTelegramId(householdId, telegramId) {
+  const user = await findUserByTelegramId(telegramId);
+  if (!user) return null;
   const { data, error } = await supabase
     .from("household_members")
     .select("user_id, role, users(id, telegram_id, display_name)")
     .eq("household_id", householdId)
-    .eq("users.telegram_id", String(telegramId))
+    .eq("user_id", user.id)
     .maybeSingle();
   if (error) throw error;
   return data;
