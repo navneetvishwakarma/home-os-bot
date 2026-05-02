@@ -19,6 +19,7 @@ const { parseDurationMinutes, parseTimeHHMM, parseTimezone } = require("../utils
 const { error } = require("../utils/logger");
 const { generateWittyReply } = require("../services/witty-response");
 const { startSessionForTask } = require("./correction-session");
+const { buildExportPayload } = require("../services/export");
 
 function householdHeader(name) {
   return `🏠 ${name}\n\n`;
@@ -169,6 +170,15 @@ async function registerCommands(bot) {
     await ctx.reply(witty || `✅ Timezone set to ${tz}`);
   }));
 
+  bot.command("export", requireMember(async (ctx) => {
+    const payload = await buildExportPayload(ctx.household.id);
+    const json = JSON.stringify(payload, null, 2);
+    await ctx.replyWithDocument({
+      source: Buffer.from(json, 'utf8'),
+      filename: 'export.json'
+    });
+  }));
+
   bot.command("help", requireMember(async (ctx) => {
     const isAdmin = ctx.memberRole === "admin";
     const lines = [
@@ -186,6 +196,7 @@ async function registerCommands(bot) {
       "/edit <number or name> — edit a task's details",
       "/settings — show settings",
       "/leavehousehold — leave this household",
+      "/export — download all your household data as JSON",
       "/help — this message"
     ];
     if (isAdmin) {
