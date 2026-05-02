@@ -174,9 +174,11 @@ async function registerCommands(bot) {
     try {
       const payload = await buildExportPayload(ctx.household.id);
       const json = JSON.stringify(payload, null, 2);
+      const slug = ctx.household.name.replace(/\s+/g, '-').toLowerCase();
+      const date = new Date().toISOString().slice(0, 10);
       await ctx.replyWithDocument({
         source: Buffer.from(json, 'utf8'),
-        filename: 'export.json'
+        filename: `export-${slug}-${date}.json`
       });
     } catch (err) {
       await ctx.reply('⚠️ Export failed. Please try again.');

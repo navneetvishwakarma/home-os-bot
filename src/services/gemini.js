@@ -79,7 +79,8 @@ function sanitizeTask(raw, areas, originalText) {
   const title = String(raw.title || "").trim() || "Untitled task";
   const area = String(raw.area || "General").trim() || "General";
   const lowerAreas = new Set(areas.map((name) => name.toLowerCase()));
-  const isKnownArea = lowerAreas.has(area.toLowerCase());
+  // "General" is always seeded on household creation — never treat it as new
+  const isKnownArea = lowerAreas.has(area.toLowerCase()) || area.toLowerCase() === 'general';
   const recurrence = normalizeRecurrence(raw, originalText);
 
   return {
