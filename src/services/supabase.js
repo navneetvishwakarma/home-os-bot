@@ -242,7 +242,7 @@ async function createHousehold(name, adminUserId) {
   const { data: household, error: hError } = await supabase
     .from("households")
     .insert({ name })
-    .select("id, name")
+    .select("id, name, plan")
     .single();
   if (hError) throw hError;
 
@@ -260,7 +260,7 @@ async function createHousehold(name, adminUserId) {
 async function getHousehold(householdId) {
   const { data, error } = await supabase
     .from("households")
-    .select("id, name")
+    .select("id, name, plan")
     .eq("id", householdId)
     .single();
   if (error) throw error;
@@ -272,7 +272,7 @@ async function getAllHouseholdsWithSettings() {
   // so PostgREST embeds it as an array; we take [0] since UNIQUE(household_id).
   const { data, error } = await supabase
     .from("households")
-    .select("id, name, settings(calendar_time, calendar_duration, timezone)")
+    .select("id, name, plan, settings(calendar_time, calendar_duration, timezone)")
     .is("deleted_at", null);
   if (error) throw error;
   return data
@@ -288,6 +288,7 @@ async function getAllHouseholdsWithSettings() {
       return {
         id: h.id,
         name: h.name,
+        plan: h.plan || "free",
         settings: {
           calendarTime: s.calendar_time.slice(0, 5),
           calendarDuration: s.calendar_duration,

@@ -53,7 +53,7 @@ require.cache[require.resolve('../../src/utils/logger')] = {
   exports: { info: mock.fn(), warn: warnFn, error: mock.fn() }
 };
 
-const { bulkComplete, getIncompleteTasksByPriority, getAllHouseholdsWithSettings } = require('../../src/services/supabase');
+const { bulkComplete, getIncompleteTasksByPriority, getAllHouseholdsWithSettings, getHousehold } = require('../../src/services/supabase');
 
 // ─── bulkComplete ─────────────────────────────────────────────────────────────
 
@@ -255,5 +255,41 @@ describe('getAllHouseholdsWithSettings', () => {
     const result = await getAllHouseholdsWithSettings();
     assert.equal(result.length, 0);
     assert.equal(warnFn.mock.calls.length, 2);
+  });
+
+  it('includes plan field on each returned household', async () => {
+    responseQueue.push({
+      data: [{
+        id: 'h1', name: 'Sharma House', plan: 'free',
+        settings: [{ calendar_time: '18:00:00', calendar_duration: 60, timezone: 'Asia/Kolkata' }]
+      }],
+      error: null
+    });
+    const result = await getAllHouseholdsWithSettings();
+    assert.equal(result.length, 1);
+    assert.equal(result[0].plan, 'free');
+  });
+});
+
+// ─── getHousehold ─────────────────────────────────────────────────────────────
+
+describe('getHousehold', () => {
+  beforeEach(() => {
+    responseQueue = [];
+    warnFn.mock.resetCalls();
+  });
+
+  it('returns id, name, and plan from the DB row', async () => {
+    responseQueue.push({ data: { id: 'h1', name: 'Sharma House', plan: 'free' }, error: null });
+    const result = await getHousehold('h1');
+    assert.equal(result.id, 'h1');
+    assert.equal(result.name, 'Sharma House');
+    assert.equal(result.plan, 'free');
+  });
+
+  it('passes through non-default plan values', async () => {
+    responseQueue.push({ data: { id: 'h2', name: 'Pro House', plan: 'pro' }, error: null });
+    const result = await getHousehold('h2');
+    assert.equal(result.plan, 'pro');
   });
 });
