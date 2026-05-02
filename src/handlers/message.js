@@ -8,6 +8,17 @@ const { handleCorrection } = require("./correction");
 const { getSession, setRecentTask, startSession } = require("./correction-session");
 const { handleCompletionReply } = require("./complete");
 const { isCompletionWindowActive } = require("./queue-session");
+const { classifyIntent } = require("../services/intent-classifier");
+
+const INTENT_STUBS = {
+  note:       '📝 Note-taking is coming soon. For now, save this as a task.',
+  reminder:   '⏰ Reminders are coming soon.',
+  contact:    '👤 Contact management is coming soon.',
+  expense:    '💰 Expense tracking is coming soon.',
+  question:   '❓ Q&A is coming soon. Use /pending or /queue to check your tasks.',
+  correction: '✏️ To correct the last task, type "correct" or "fix this".',
+  completion: '✅ To mark tasks done after your daily queue, reply yes / skip <task> / no.'
+};
 
 async function handleMessage(ctx) {
   if (!ctx.household) return;
@@ -35,6 +46,12 @@ async function handleMessage(ctx) {
       return;
     }
     await ctx.reply('Reply with the correction text, for example: "make it HIGH".');
+    return;
+  }
+
+  const intent = await classifyIntent(incoming);
+  if (intent !== 'task' && intent !== 'unknown') {
+    await ctx.reply(INTENT_STUBS[intent] || '⚠️ Not sure what to do with that. Try rephrasing.');
     return;
   }
 
