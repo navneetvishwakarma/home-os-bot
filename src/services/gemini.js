@@ -121,12 +121,16 @@ function sanitizePatch(rawPatch) {
   return patch;
 }
 
-async function generateJson(prompt) {
+async function generateText(prompt) {
   const response = await withRetry(
     () => client.models.generateContent({ model: config.geminiModel, contents: prompt }),
     { retryOn: [503, 429], maxAttempts: 3, baseDelayMs: 1000 }
   );
-  const text = response.text || "";
+  return (response.text || "").trim();
+}
+
+async function generateJson(prompt) {
+  const text = await generateText(prompt);
   const parsed = safeParseJsonObject(text);
   if (!parsed) {
     throw new Error("Gemini returned invalid JSON.");
@@ -168,5 +172,6 @@ async function correctTask(existingTask, correctionText) {
 
 module.exports = {
   classifyTask,
-  correctTask
+  correctTask,
+  generateText
 };

@@ -46,6 +46,13 @@ require.cache[require.resolve('../../src/handlers/queue-session')] = {
 require.cache[require.resolve('../../src/services/witty-response')] = {
   exports: { generateWittyReply: mock.fn(async () => null) }
 };
+const classifyIntent = mock.fn(async () => 'task');
+require.cache[require.resolve('../../src/services/intent-classifier')] = {
+  exports: { classifyIntent }
+};
+require.cache[require.resolve('../../src/services/sentry')] = {
+  exports: { captureException: mock.fn() }
+};
 
 const { handleMessage } = require('../../src/handlers/message');
 
@@ -73,6 +80,8 @@ describe('handleMessage', () => {
     handleCorrection.mock.resetCalls();
     handleCompletionReply.mock.resetCalls();
     isCompletionWindowActive.mock.resetCalls();
+    classifyIntent.mock.resetCalls();
+    classifyIntent.mock.mockImplementation(async () => 'task');
 
     // Reset to default implementations
     classifyTask.mock.mockImplementation(async () => ({
@@ -251,5 +260,38 @@ describe('handleMessage', () => {
     assert.equal(createTask.mock.calls.length, 1);
     assert.equal(setRecentTask.mock.calls.length, 1);
     assert.equal(ctx.reply.mock.calls.length, 1);
+  });
+
+  describe('intent routing', () => {
+    it('routes task intent through task capture as normal', async () => {
+      classifyIntent.mock.mockImplementation(async () => 'task');
+      const ctx = makeCtx('fix the leaking tap');
+      await handleMessage(ctx);
+      assert.equal(classifyTask.mock.calls.length, 1);
+      assert.equal(createTask.mock.calls.length, 1);
+    });
+
+    it('routes unknown intent through task capture as fallback', async () => {
+      classifyIntent.mock.mockImplementation(async () => 'unknown');
+      const ctx = makeCtx('fix the leaking tap');
+      await handleMessage(ctx);
+      assert.equal(classifyTask.mock.calls.length, 1);
+    });
+
+    it('stubs note intent — does not capture as task', async () => {
+      classifyIntent.mock.mockImplementation(async () => 'note');
+      const ctx = makeCtx('remember to call the plumber');
+      await handleMessage(ctx);
+      assert.equal(createTask.mock.calls.length, 0);
+      assert.equal(ctx.reply.mock.calls.length, 1);
+    });
+
+    it('stubs expense intent — does not capture as task', async () => {
+      classifyIntent.mock.mockImplementation(async () => 'expense');
+      const ctx = makeCtx('spent 500 on groceries');
+      await handleMessage(ctx);
+      assert.equal(createTask.mock.calls.length, 0);
+      assert.equal(ctx.reply.mock.calls.length, 1);
+    });
   });
 });
