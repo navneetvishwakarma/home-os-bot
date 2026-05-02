@@ -10,6 +10,7 @@ const {
 } = require("../services/supabase");
 const { formatQueueMessage } = require("../utils/formatters");
 const { info, error } = require("../utils/logger");
+const { captureException } = require("../services/sentry");
 const { config } = require("../config");
 const { setQueuedTasks, startCompletionWindow } = require("../handlers/queue-session");
 
@@ -68,6 +69,7 @@ function scheduleForHousehold(bot, household) {
         });
       } catch (err) {
         error("queue_post_failed", { householdId: household.id, message: err.message });
+        captureException(err, { operation: 'queue_post', householdId: household.id });
       }
     },
     { timezone }
@@ -88,6 +90,7 @@ function scheduleForHousehold(bot, household) {
         info("completion_prompt_sent", { householdId: household.id, audienceCount: members.length });
       } catch (err) {
         error("completion_prompt_failed", { householdId: household.id, message: err.message });
+        captureException(err, { operation: 'completion_prompt', householdId: household.id });
       }
     },
     { timezone }

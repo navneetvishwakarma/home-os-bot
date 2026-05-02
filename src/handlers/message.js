@@ -3,6 +3,7 @@ const { generateWittyReply } = require("../services/witty-response");
 const { addArea, createTask, getAreas } = require("../services/supabase");
 const { formatTaskCard } = require("../utils/formatters");
 const { error } = require("../utils/logger");
+const { captureException } = require("../services/sentry");
 const { handleCorrection } = require("./correction");
 const { getSession, setRecentTask, startSession } = require("./correction-session");
 const { handleCompletionReply } = require("./complete");
@@ -61,6 +62,7 @@ async function handleMessage(ctx) {
     setRecentTask(ctx.chat.id, ctx.from.id, { ...task, id: taskId });
   } catch (err) {
     error("task_capture_failed", { message: err.message, userId, householdId: ctx.household.id });
+    captureException(err, { operation: 'task_capture', householdId: ctx.household.id });
     const isAiOverload = err.status === 503 || err.status === 429;
     await ctx.reply(
       isAiOverload
