@@ -1,3 +1,6 @@
+const { initSentry } = require("./services/sentry");
+initSentry(); // must run before config load so boot errors are captured
+
 const { Telegraf } = require("telegraf");
 const { config } = require("./config");
 const { householdMiddleware } = require("./middleware/household");
@@ -8,10 +11,7 @@ const { handleMessage } = require("./handlers/message");
 const { purgeExpiredSessions } = require("./handlers/correction-session");
 const { startScheduler } = require("./cron/scheduler");
 const { info, error } = require("./utils/logger");
-const { initSentry } = require("./services/sentry");
 const { launchBot } = require("./utils/launch-bot");
-
-initSentry();
 
 const bot = new Telegraf(config.telegramBotToken);
 

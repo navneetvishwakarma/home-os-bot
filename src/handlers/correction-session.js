@@ -7,16 +7,18 @@ function keyOf(chatId, userId) {
 }
 
 function setRecentTask(chatId, userId, task) {
-  recentTasks.set(keyOf(chatId, userId), task);
+  recentTasks.set(keyOf(chatId, userId), { task, addedAt: Date.now() });
 }
 
 function startSession(chatId, userId) {
-  const task = recentTasks.get(keyOf(chatId, userId));
-  if (!task) return false;
-  sessions.set(keyOf(chatId, userId), {
-    task,
-    expiresAt: Date.now() + TTL_MS
-  });
+  const key = keyOf(chatId, userId);
+  const entry = recentTasks.get(key);
+  if (!entry) return false;
+  if (entry.addedAt + TTL_MS < Date.now()) {
+    recentTasks.delete(key);
+    return false;
+  }
+  sessions.set(key, { task: entry.task, expiresAt: Date.now() + TTL_MS });
   return true;
 }
 
@@ -40,8 +42,12 @@ function clearSession(chatId, userId) {
 }
 
 function purgeExpiredSessions() {
+  const now = Date.now();
   for (const [key, session] of sessions) {
-    if (session.expiresAt < Date.now()) sessions.delete(key);
+    if (session.expiresAt < now) sessions.delete(key);
+  }
+  for (const [key, entry] of recentTasks) {
+    if (entry.addedAt + TTL_MS < now) recentTasks.delete(key);
   }
 }
 

@@ -105,7 +105,7 @@ async function registerCommands(bot) {
     const tasks = await getIncompleteTasksByPriority(ctx.household.id);
     const task = findTaskByQuery(tasks, query);
     if (!task) return ctx.reply("❌ Task not found. Use /pending to see the list.");
-    await deleteTask(task.id);
+    await deleteTask(ctx.household.id, task.id);
     const witty = await generateWittyReply('task_deleted', { title: task.title });
     return ctx.reply(witty || `🗑️ Deleted: ${task.title}`);
   }));
@@ -171,12 +171,16 @@ async function registerCommands(bot) {
   }));
 
   bot.command("export", requireMember(async (ctx) => {
-    const payload = await buildExportPayload(ctx.household.id);
-    const json = JSON.stringify(payload, null, 2);
-    await ctx.replyWithDocument({
-      source: Buffer.from(json, 'utf8'),
-      filename: 'export.json'
-    });
+    try {
+      const payload = await buildExportPayload(ctx.household.id);
+      const json = JSON.stringify(payload, null, 2);
+      await ctx.replyWithDocument({
+        source: Buffer.from(json, 'utf8'),
+        filename: 'export.json'
+      });
+    } catch (err) {
+      await ctx.reply('⚠️ Export failed. Please try again.');
+    }
   }));
 
   bot.command("help", requireMember(async (ctx) => {

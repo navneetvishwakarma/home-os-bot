@@ -231,7 +231,8 @@ describe('commands', () => {
       const ctx = makeCtx('/delete 1');
       await handlers['delete'](ctx);
       assert.equal(deleteTask.mock.calls.length, 1);
-      assert.equal(deleteTask.mock.calls[0].arguments[0], 't2');
+      assert.equal(deleteTask.mock.calls[0].arguments[0], 'h1'); // householdId
+      assert.equal(deleteTask.mock.calls[0].arguments[1], 't2'); // taskId
       assert.ok(ctx.reply.mock.calls[0].arguments[0].includes('Buy groceries'));
     });
 
@@ -242,7 +243,8 @@ describe('commands', () => {
       const ctx = makeCtx('/delete groceries');
       await handlers['delete'](ctx);
       assert.equal(deleteTask.mock.calls.length, 1);
-      assert.equal(deleteTask.mock.calls[0].arguments[0], 't2');
+      assert.equal(deleteTask.mock.calls[0].arguments[0], 'h1'); // householdId
+      assert.equal(deleteTask.mock.calls[0].arguments[1], 't2'); // taskId
     });
 
     it('replies "not found" when query matches nothing', async () => {
